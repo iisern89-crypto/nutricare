@@ -210,6 +210,209 @@
         <!-- Alerta de Síndrome de Realimentació -->
         <div id="admission-risk-alert"></div>
 
+        <!-- ============================================================== -->
+        <!-- ESCALES DE RISC NUTRICIONAL: NRS-2002 I NUTRIC SCORE          -->
+        <!-- ============================================================== -->
+        <div class="screening-section" style="margin-top:24px;">
+          <div class="section-title-row" style="margin-bottom:14px;">
+            <h3 style="font-size:16px; font-weight:800; color:var(--text); display:flex; align-items:center; gap:8px;">
+              📊 Escales de Risc Nutricional (NRS-2002 i NUTRIC Score)
+            </h3>
+            <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;">
+              Estratificació del risc de desnutrició segons guies oficials ESPEN / SEMICYUC per a pacients hospitalitzats i crítics.
+            </p>
+          </div>
+
+          <div class="screening-grid">
+            <!-- TARGETA 1: NRS-2002 -->
+            <div class="score-card" id="card-nrs2002">
+              <div class="score-card-header">
+                <div>
+                  <h4 style="font-size:14.5px; font-weight:800; margin:0; color:var(--text);">📋 NRS-2002 (ESPEN)</h4>
+                  <span style="font-size:11.5px; color:var(--text-muted);">Nutritional Risk Screening 2002 · Hospitalari</span>
+                </div>
+                <span id="badge-nrs-quick" class="badge">--</span>
+              </div>
+              <div class="score-card-body">
+                <div class="form-group" style="margin-bottom:12px;">
+                  <label style="font-size:12px; font-weight:700;">1. Estat Nutricional (0 a 3 punts)</label>
+                  <select id="sel-nrs-nutritional" class="form-control form-control-sm">
+                    <option value="0">0 pts · Estat normal / Pèrdua de pes &lt; 5%</option>
+                    <option value="1">1 pt · Lleu: Pèrdua &gt; 5% en 3 mesos O Ingesta 50-75% setmana prèvia</option>
+                    <option value="2">2 pts · Moderat: Pèrdua &gt; 5% en 2 mesos O IMC 18.5-20.5 O Ingesta 25-50%</option>
+                    <option value="3">3 pts · Greu: Pèrdua &gt; 5% en 1 mes (&gt;15% en 3m) O IMC &lt; 18.5 O Ingesta 0-25%</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                  <label style="font-size:12px; font-weight:700;">2. Gravetat de la Malaltia / Estrès (0 a 3 punts)</label>
+                  <select id="sel-nrs-disease" class="form-control form-control-sm">
+                    <option value="0">0 pts · Requeriments normals (ingrés estable, cirurgia menor)</option>
+                    <option value="1">1 pt · Lleu: Fractura maluc, cirrosi, MPOC greu, cirurgia major abdominal</option>
+                    <option value="2">2 pts · Moderat: Cirurgia abdominal complicada, pneumònia greu, politrauma</option>
+                    <option value="3">3 pts · Greu: Crític UCI (VM / APACHE&gt;10), xoc sèptic, TCE greu, TMO</option>
+                  </select>
+                </div>
+                <div class="score-row-info" id="row-nrs-age-info" style="font-size:12px; padding:7px 10px; background:var(--surface-alt); border-radius:6px; margin-bottom:12px; border:1px solid var(--border);">
+                  <!-- Calculat automàticament de l'edat -->
+                </div>
+                <div id="nrs-result-box" class="score-result-banner"></div>
+              </div>
+            </div>
+
+            <!-- TARGETA 2: NUTRIC SCORE -->
+            <div class="score-card" id="card-nutric">
+              <div class="score-card-header">
+                <div>
+                  <h4 style="font-size:14.5px; font-weight:800; margin:0; color:var(--text);">🩺 NUTRIC Score (mNUTRIC)</h4>
+                  <span style="font-size:11.5px; color:var(--text-muted);">Heyland et al. · Específic Pacients Crítics UCI</span>
+                </div>
+                <span id="badge-nutric-quick" class="badge">--</span>
+              </div>
+              <div class="score-card-body">
+                <div class="score-row-info" id="row-nutric-age-info" style="font-size:12px; padding:7px 10px; background:var(--surface-alt); border-radius:6px; margin-bottom:10px; border:1px solid var(--border);">
+                  <!-- Edat auto -->
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:11.5px; font-weight:700;">APACHE II ingrés</label>
+                    <select id="sel-nutric-apache" class="form-control form-control-sm">
+                      <option value="0">&lt; 15 (0 pts)</option>
+                      <option value="1">15 - 19 (1 pt)</option>
+                      <option value="2">20 - 27 (2 pts)</option>
+                      <option value="3">≥ 28 (3 pts)</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:11.5px; font-weight:700;">SOFA Score ingrés</label>
+                    <select id="sel-nutric-sofa" class="form-control form-control-sm">
+                      <option value="0">&lt; 6 (0 pts)</option>
+                      <option value="1">6 - 9 (1 pt)</option>
+                      <option value="2">≥ 10 (2 pts)</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:11.5px; font-weight:700;">Comorbilitats</label>
+                    <select id="sel-nutric-comorb" class="form-control form-control-sm">
+                      <option value="0">0 - 1 comorbilitats (0 pts)</option>
+                      <option value="1">≥ 2 comorbilitats (1 pt)</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:11.5px; font-weight:700;">Dies pre-UCI</label>
+                    <select id="sel-nutric-preicu" class="form-control form-control-sm">
+                      <option value="0">&lt; 1 dia (0 pts)</option>
+                      <option value="1">≥ 1 dia a planta (1 pt)</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="nutric-result-box" class="score-result-banner"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- CRITERIS GLIM (VOLUNTARI / OPCIONAL)                          -->
+        <!-- ============================================================== -->
+        <div class="glim-card" style="margin-top:22px;">
+          <div class="glim-header-bar">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <span style="font-size:18px;">🧬</span>
+              <div>
+                <strong style="font-size:14.5px; color:var(--text);">Criteris Diagnòstics GLIM (Desnutrició)</strong>
+                <span class="badge badge-info" style="margin-left:6px; font-size:11px;">Voluntari / Opcional</span>
+              </div>
+            </div>
+            <label class="glim-switch-label">
+              <input type="checkbox" id="chk-enable-glim">
+              <span>Emplenar criteris GLIM</span>
+            </label>
+          </div>
+
+          <div id="glim-body-wrapper" style="display:none; padding:16px; border-top:1px solid var(--border);">
+            <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">
+              Segons el consens internacional GLIM (ESPEN/ASPEN), el diagnòstic requereix complir <strong>almenys 1 criteri Fenotípic</strong> I <strong>almenys 1 criteri Etiològic</strong>.
+            </p>
+
+            <div class="glim-columns-grid">
+              <!-- Criteris Fenotípics -->
+              <div class="glim-col">
+                <div class="glim-col-title">1. Criteris Fenotípics (almenys 1)</div>
+                
+                <div class="glim-criterion-group">
+                  <label class="glim-crit-label">A) Pèrdua involuntària de pes</label>
+                  <select id="sel-glim-pheno-weight" class="form-control form-control-sm">
+                    <option value="none">Cap (&lt; 5% en 6 mesos)</option>
+                    <option value="moderate">Moderada (&gt; 5% en 6m o 10-20% &gt; 6m)</option>
+                    <option value="severe">Greu (&gt; 10% en 6m o &gt; 20% &gt; 6m)</option>
+                  </select>
+                  <div id="hint-glim-weight" class="glim-auto-hint"></div>
+                </div>
+
+                <div class="glim-criterion-group">
+                  <label class="glim-crit-label">B) Baix Índex de Massa Corporal (IMC)</label>
+                  <select id="sel-glim-pheno-bmi" class="form-control form-control-sm">
+                    <option value="none">Normal / No baix</option>
+                    <option value="moderate">Moderat (&lt; 20 si &lt; 70a, o &lt; 22 si ≥ 70a)</option>
+                    <option value="severe">Greu (&lt; 18.5 si &lt; 70a, o &lt; 20 si ≥ 70a)</option>
+                  </select>
+                  <div id="hint-glim-bmi" class="glim-auto-hint"></div>
+                </div>
+
+                <div class="glim-criterion-group">
+                  <label class="glim-crit-label">C) Reducció de massa muscular</label>
+                  <select id="sel-glim-pheno-muscle" class="form-control form-control-sm">
+                    <option value="none">Conservada / Sense dèficit constatat</option>
+                    <option value="moderate">Moderada (dèficit muscular lleu-moderat per exploració / BIA / eco)</option>
+                    <option value="severe">Greu (sarcopènia greu o pèrdua muscular severa)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Criteris Etiològics -->
+              <div class="glim-col">
+                <div class="glim-col-title">2. Criteris Etiològics (almenys 1)</div>
+
+                <div class="glim-criterion-group">
+                  <label class="glim-crit-label">A) Reducció d'ingesta o assimilació</label>
+                  <div class="form-check" style="margin-bottom:6px;">
+                    <label class="form-check-label" style="font-size:12px; display:flex; align-items:flex-start; gap:6px;">
+                      <input type="checkbox" id="chk-glim-etio-intake" style="margin-top:2px;">
+                      <span>Ingesta ≤ 50% dels requeriments &gt; 1 setmana (o reducció &gt; 2 setmanes)</span>
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <label class="form-check-label" style="font-size:12px; display:flex; align-items:flex-start; gap:6px;">
+                      <input type="checkbox" id="chk-glim-etio-gastro" style="margin-top:2px;">
+                      <span>Patologia gastrointestinal aguda/crònica que altera la digestió/absorció</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="glim-criterion-group" style="margin-top:14px;">
+                  <label class="glim-crit-label">B) Càrrega de malaltia o inflamació</label>
+                  <div class="form-check" style="margin-bottom:6px;">
+                    <label class="form-check-label" style="font-size:12px; display:flex; align-items:flex-start; gap:6px;">
+                      <input type="checkbox" id="chk-glim-etio-acute" style="margin-top:2px;">
+                      <span>Malaltia aguda greu / Pacient crític UCI / Sèpsia / Politrauma / Cremats</span>
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <label class="form-check-label" style="font-size:12px; display:flex; align-items:flex-start; gap:6px;">
+                      <input type="checkbox" id="chk-glim-etio-chronic" style="margin-top:2px;">
+                      <span>Malaltia crònica inflamatòria activa / Neoplàsia / PCR persistentment elevada</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="glim-result-box" class="score-result-banner" style="margin-top:16px;"></div>
+          </div>
+        </div>
+
         <div id="step-2-validation-msg" class="alert-box alert-danger" style="display:none; margin-top:16px;"></div>
       </div>
 
