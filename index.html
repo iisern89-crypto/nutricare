@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>NutriCare · Valoració Nutricional i Metabòlica Hospitalària</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- CAPÇALERA PRINCIPAL -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-logo">NC</div>
+        <div class="brand-title">
+          <h1>
+            NutriCare
+            <span class="brand-tag">UCI → Planta</span>
+          </h1>
+          <div class="brand-subtitle">Valoració Nutricional, Càlcul d'Aports i Monitorització GI/Metabòlica Pas a Pas</div>
+        </div>
+      </div>
+      <div class="header-actions no-print">
+        <button type="button" class="btn btn-sm btn-outline header-btn" id="btn-open-evolution-modal">
+          📈 <span class="btn-text">Gràfica</span><span class="btn-text-full"> Evolutiva</span>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline header-btn" id="btn-open-catalog-modal">
+          📖 <span class="btn-text">Catàleg</span><span class="btn-text-full"> Dietes i Fórmules</span>
+        </button>
+        <button type="button" class="btn btn-sm btn-primary header-btn-primary" id="btn-print-report">
+          🖨️ <span class="btn-text">PDF</span><span class="btn-text-full"> / Imprimir</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- BARRA SUPERIOR DE PACIENT, VALORACIÓ D'INGRÉS DESADA I DIES DE VALORACIÓ -->
+  <section class="top-patient-bar no-print">
+    <div class="top-patient-inner">
+      <div class="patient-row">
+        <div class="patient-select-group">
+          <span class="patient-label">Pacient:</span>
+          <select id="patient-select" class="form-control patient-select"></select>
+          <div class="patient-btn-group">
+            <button type="button" class="btn btn-sm btn-primary" id="btn-new-patient">+ Nou</button>
+            <button type="button" class="btn btn-sm btn-danger-outline" id="btn-delete-patient" title="Eliminar pacient">🗑️</button>
+          </div>
+        </div>
+
+        <!-- Píndola de Valoració d'Ingrés Guardada (visible des que es completa el 1r dia) -->
+        <div id="saved-admission-banner" style="display:none;"></div>
+      </div>
+
+      <!-- Línia de dies de valoració (visible quan la valoració d'ingrés ja està guardada) -->
+      <div class="day-row" id="day-timeline-row" style="display:none;">
+        <div style="display:flex; align-items:center; gap:8px; overflow-x:auto;">
+          <span style="font-size:11.5px; font-weight:800; color:var(--text-light); white-space:nowrap;">DIES DE VALORACIÓ:</span>
+          <div class="day-chips" id="day-chips-container"></div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-sm btn-outline" id="btn-add-day-uci">+ Nou Dia UCI</button>
+          <button type="button" class="btn btn-sm btn-secondary" id="btn-add-day-planta">+ Nou Dia a Planta</button>
+          <button type="button" class="btn btn-sm btn-danger-outline" id="btn-delete-day" title="Esborrar dia actual">✕ Dia</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ESCENARI PRINCIPAL: NOMÉS UNA PANTALLA OBERTA A LA VEGADA -->
+  <main class="screen-stage">
+
+    <!-- BARRA DE PESTANYES / PANTALLES DEL FLUX PAS A PAS -->
+    <div class="screen-stepper no-print" id="screen-stepper-bar"></div>
+
+    <!-- ================================================================== -->
+    <!-- PANTALLA 1: VALORACIÓ NUTRICIONAL A L'INGRÉS (NOMÉS EL 1r DIA)      -->
+    <!-- ================================================================== -->
+    <section class="app-screen" id="screen-1">
+      <div class="screen-header">
+        <div>
+          <span class="screen-step-tag">Pantalla 1 · Obligatòria només el 1r Dia</span>
+          <h2>📏 Valoració Nutricional a l'Ingrés</h2>
+          <p>Introdueix les dades antropomètriques i de risc a l'ingrés. Un cop desades, ja quedaran guardades per a tots els dies següents.</p>
+        </div>
+      </div>
+
+      <div class="screen-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nom o Identificador del Pacient <span class="req-star">*</span></label>
+            <input type="text" id="inp-patient-name" class="form-control" placeholder="Ex: Pacient Box 4 / Cognoms">
+          </div>
+          <div class="form-group">
+            <label>NHC / Llit</label>
+            <input type="text" id="inp-patient-nhc" class="form-control" placeholder="Opcional">
+          </div>
+          <div class="form-group">
+            <label>Sexe <span class="req-star">*</span></label>
+            <select id="inp-patient-sex" class="form-control">
+              <option value="">-- Selecciona --</option>
+              <option value="F">Dona (F)</option>
+              <option value="M">Home (M)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Edat <span class="req-star">*</span></label>
+            <div class="input-addon">
+              <input type="number" id="inp-patient-age" class="form-control" min="1" max="115" placeholder="61">
+              <span class="addon-unit">anys</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Altura / Talla <span class="req-star">*</span></label>
+            <div class="input-addon">
+              <input type="number" id="inp-patient-height" class="form-control" min="100" max="230" step="0.5" placeholder="160">
+              <span class="addon-unit">cm</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Pes Actual a l'Ingrés <span class="req-star">*</span></label>
+            <div class="input-addon">
+              <input type="number" id="inp-admission-weight" class="form-control" min="25" max="300" step="0.1" placeholder="81.5">
+              <span class="addon-unit">kg</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Pes Habitual (6-12 mesos) <span class="req-star">*</span></label>
+            <div class="input-addon">
+              <input type="number" id="inp-habitual-weight" class="form-control" min="25" max="300" step="0.1" placeholder="175">
+              <span class="addon-unit">kg</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Fosfat plasmàtic a l'ingrés</label>
+            <div class="input-addon">
+              <input type="number" id="inp-phosphate" class="form-control" min="0.3" max="8.0" step="0.1" placeholder="2.8">
+              <span class="addon-unit">mg/dL</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Diabetis / Hiperglucèmia</label>
+            <select id="inp-patient-diabetes" class="form-control">
+              <option value="false">No</option>
+              <option value="true">Sí (DM o Hiperglucèmia d'estrès)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Disfàgia / Alteració deglució</label>
+            <select id="inp-patient-dysphagia" class="form-control">
+              <option value="false">No</option>
+              <option value="true">Sí (Precisa textura modificada)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Càlculs automàtics (IMC, Pes Ideal, Pes Ajustat, Pes de Treball, Pèrdua/Guany de pes) -->
+        <div class="calc-results-grid" id="anthro-results-box"></div>
+
+        <!-- Alerta de Síndrome de Realimentació -->
+        <div id="admission-risk-alert"></div>
+
+        <div id="step-1-validation-msg" class="alert-box alert-danger" style="display:none;"></div>
+      </div>
+
+      <div class="screen-footer">
+        <span style="font-size:12.5px; color:var(--text-muted);">Un cop guardada, la valoració a l'ingrés no es tornarà a demanar en els dies següents.</span>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-1">
+          Guardar Valoració a l'Ingrés i Obrir Objectius del Dia →
+        </button>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- PANTALLA 2: OBJECTIUS NUTRICIONALS DEL DIA DE VALORACIÓ             -->
+    <!-- ================================================================== -->
+    <section class="app-screen" id="screen-2">
+      <div class="screen-header">
+        <div>
+          <span class="screen-step-tag">Pantalla 2 · Obligatòria per a cada dia de valoració</span>
+          <h2 id="screen-2-title">🎯 Objectius Nutricionals del Dia</h2>
+          <p>Revisa el Pes del Dia i el Pes de Treball, i defineix els requeriments d'energia, proteïnes i lípids per avui.</p>
+        </div>
+      </div>
+
+      <div class="screen-body">
+        <!-- Botons ràpids de moment evolutiu -->
+        <div class="phase-presets-bar">
+          <strong style="font-size:13px; color:var(--primary-dark);">⚡ Plantilles ràpides segons fase clínica:</strong>
+          <div class="phase-presets-list">
+            <button type="button" class="btn btn-sm btn-outline" data-preset-phase="refeed_d1">Refeeding D1 (10 kcal / 1,0g)</button>
+            <button type="button" class="btn btn-sm btn-outline" data-preset-phase="uci_early">UCI Precoç D1-2 (15 kcal / 1,2g)</button>
+            <button type="button" class="btn btn-sm btn-outline" data-preset-phase="uci_stable">UCI Estable D3-7 (20 kcal / 1,5g)</button>
+            <button type="button" class="btn btn-sm btn-outline" data-preset-phase="uci_trrc">UCI Crític / TRRC (25 kcal / 1,8g)</button>
+            <button type="button" class="btn btn-sm btn-outline" data-preset-phase="planta_anabolic">Planta / Anabòlic (30 kcal / 1,8g)</button>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Ubicació del Pacient avui <span class="req-star">*</span></label>
+            <select id="inp-day-location" class="form-control">
+              <option value="UCI">🔴 UCI (Unitat de Crítics)</option>
+              <option value="PLANTA">🔵 Planta d'Hospitalització</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Etiqueta / Moment evolutiu</label>
+            <input type="text" id="inp-day-phase" class="form-control" placeholder="Ex: Dia 1 UCI - Fase aguda">
+          </div>
+          <div class="form-group">
+            <label>Data de la valoració</label>
+            <input type="date" id="inp-day-date" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Pes del Dia (Actual)</label>
+            <div class="input-addon">
+              <input type="number" id="inp-actual-weight" class="form-control" min="25" max="300" step="0.1">
+              <span class="addon-unit">kg</span>
+            </div>
+          </div>
+          <div class="form-group work-weight-group">
+            <label style="color:var(--primary-dark);">⚖️ Pes de Treball (per als càlculs)</label>
+            <div class="input-addon">
+              <input type="text" id="disp-work-weight-day" class="form-control" readonly style="background:var(--primary-soft); border-color:#5eead4; font-weight:800; color:var(--primary-dark); font-size:15px; width:75px; flex:0 0 75px; text-align:right;">
+              <span class="addon-unit" id="disp-work-weight-tag" style="background:var(--primary-light); color:var(--primary-dark); font-size:11.5px; font-weight:700; white-space:nowrap; padding:8px 10px;">kg</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid" style="margin-top:16px;">
+          <div class="form-group">
+            <label>Mètode Càlcul d'Energia <span class="req-star">*</span></label>
+            <select id="inp-energy-method" class="form-control">
+              <option value="weight">Fórmula per Pes de Treball (kcal/kg/dia)</option>
+              <option value="ic">Calorimetria Indirecta (CI)</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="weight-kcal-group">
+            <label>Objectiu Energia <span class="req-star">*</span></label>
+            <div class="input-addon">
+              <input type="number" id="inp-kcal-kg-target" class="form-control" min="5" max="45" step="1">
+              <span class="addon-unit">kcal/kg/d</span>
+            </div>
+          </div>
+
+          <div class="form-group" id="ic-kcal-group" style="display:none;">
+            <label>Kcal Mesurades per CI <span class="req-star">*</span></label>
+            <div class="input-addon">
+              <input type="number" id="inp-ic-kcal" class="form-control" min="400" max="5000" step="10">
+              <span class="addon-unit">kcal/24h</span>
+            </div>
+          </div>
+
+          <div class="form-group" id="ic-pct-group" style="display:none;">
+            <label>% Objectiu sobre CI <span class="req-star">*</span></label>
+            <div class="input-addon">
+              <input type="number" id="inp-ic-pct" class="form-control" min="20" max="120" step="5">
+              <span class="addon-unit">%</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Objectiu Proteïnes <span class="req-star">*</span></label>
+            <div class="input-addon">
+              <input type="number" id="inp-prot-kg-target" class="form-control" min="0.5" max="2.5" step="0.1">
+              <span class="addon-unit">g/kg/d</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Objectiu Lípids <span class="req-star">*</span></label>
+            <div class="input-addon">
+              <input type="number" id="inp-lip-kg-target" class="form-control" min="0.3" max="1.5" step="0.1">
+              <span class="addon-unit">g/kg/d</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quadre amb els Objectius del Dia i el Pes de Treball -->
+        <div id="targets-calculated-summary"></div>
+      </div>
+
+      <div class="screen-footer">
+        <button type="button" class="btn btn-outline" id="btn-back-to-1">← Revisar Valoració d'Ingrés</button>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-2">
+          Confirmar Objectius del Dia i Obrir Aports No Nutricionals →
+        </button>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- PANTALLA 3: PESTANYA D'APORTS CALÒRICS NO NUTRICIONALS (ml/h)       -->
+    <!-- ================================================================== -->
+    <section class="app-screen" id="screen-3">
+      <div class="screen-header">
+        <div>
+          <span class="screen-step-tag">Pantalla 3 · Medicació amb Aport Calòric No Nutricional</span>
+          <h2>💉 Aports Calòrics No Nutricionals (Velocitat ml/h i Volum 24h)</h2>
+          <p>Introdueix la velocitat d'infusió en <strong>ml/h</strong> (i les hores d'infusió al dia) o el volum total de Sèrum Glucosat, Propofol, Citrat TRRC, Clevidipino i Lactulosa.</p>
+        </div>
+      </div>
+
+      <div class="screen-body">
+        <div class="route-context-banner" id="context-banner-screen-3"></div>
+
+        <div class="table-wrap" style="border:1px solid var(--border); border-radius:10px; overflow:hidden;">
+          <table class="clinical-table">
+            <thead>
+              <tr>
+                <th>Medicació / Perfusió</th>
+                <th>Concentració / Presentació</th>
+                <th class="num">Velocitat Bomba (ml/h)</th>
+                <th class="num">Hores/dia</th>
+                <th class="num">Volum 24h (ml o U)</th>
+                <th class="num">Macronutrient aportat</th>
+                <th class="num">Energia (kcal/24h)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- 1. Sèrum Glucosat -->
+              <tr>
+                <td><strong>Sèrum Glucosat (SG)</strong></td>
+                <td>
+                  <select id="inp-sg-conc" class="form-control">
+                    <option value="0.05">SG 5% (0,05 g gluc/ml)</option>
+                    <option value="0.1">SG 10% (0,10 g gluc/ml)</option>
+                    <option value="0.2">SG 20% (0,20 g gluc/ml)</option>
+                    <option value="0.3">SG 30% (0,30 g gluc/ml)</option>
+                    <option value="0.5">SG 50% (0,50 g gluc/ml)</option>
+                  </select>
+                </td>
+                <td class="num">
+                  <div class="input-addon">
+                    <input type="number" id="inp-sg-rate" class="form-control" min="0" step="1" style="text-align:right;">
+                    <span class="addon-unit">ml/h</span>
+                  </div>
+                </td>
+                <td class="num">
+                  <div class="input-addon">
+                    <input type="number" id="inp-sg-hours" class="form-control" min="1" max="24" step="1" style="text-align:right; width:70px;">
+                    <span class="addon-unit">h</span>
+                  </div>
+                </td>
+                <td class="num">
+                  <div class="input-addon">
+                    <input type="number" id="inp-sg-vol" class="form-control" min="0" step="25" style="text-align:right;">
+                    <span class="addon-unit">ml</span>
+                  </div>
+                </td>
+                <td class="num" id="cell-sg-macro">0,0 g glucosa</td>
+                <td class="num" id="cell-sg-kcal"><strong>0 kcal</strong></td>
+              </tr>
+
+              <!-- 2. Propofol -->
+              <tr>
+                <td><strong>Propofol (Emulsió lipídica)</strong></td>
+                <td>
+                  <select id="inp-propofol-conc" class="form-control">
+                    <option value="0.1">Propofol 1% (0,1g líp/ml · 1,1 kcal/ml)</option>
+                    <option value="0.2">Propofol 2% (0,1g líp/ml · 1,1 kcal/ml)</option>
+                  </select>
+                </td>
+                <td class="num">
+                  <div class="input-addon">
+                    <input type="number" id="inp-propofol-rate" class="form-control" min="0" step="0.5" style="text-align:right;">
+                    <span class="addon-unit">ml/h</span>
+                  </div>
+                </td>
+                <td class="num">
+                  <div class="input-addon">
+                    <input type="number" id="inp-propofol-hours" class="form-control" min="1" max="24" step="1" style="text-align:right; width:70px;">
+                    <span class="addon-unit">h</span>
+                  </div>
+                </td>
+                <td class="num">
+                  <div class="input-addon">
+                    <input type="number" id="inp-propofol-vol" class="form-control" min="0" step="10" style="text-align:right;">
+                    <span class="addon-unit">ml</span>
+                  </div>
+                </td>
+                <td class="num" id="cell-propofol-macro">0,0 g lípids</td>
+                <td class="num" id="cell-propofol-kcal"><strong>0 kcal</strong></td>
+              </tr>
+
+              <!-- 3. Citrat Trisòdic (TRRC) -->
+              <tr>
+                <td><strong>Citrat Trisòdic (TRRC)</strong></td>
+                <td><span class="badge badge-info">Bosses 4% (0,12 kcal/ml)</span></td>
+                <td class="num">
+                  <div class="input-addon">
+                    <input type="number" id="inp-citrate-rate" class="form-control" min="0" step="5" style="text-align:right;">
+                    <span class="addon-unit">ml/h</span>
+                  </div>
+                </td>
+                <td class="num">
+                  <div class="input-addon">
+                    <input type="number" id="inp-citrate-hours" class="form-control" min="1" max="24" step="1" style="text-align:right; width:70px;">
+                    <span class="addon-unit">h</span>
+                  </div>
+                </td>
+                <td class="num">
+                  <div class="input-addon">
+                    <input type="number" id="inp-citrate-vol" class="form-control" min="0" step="50" style="text-align:right;">
+                    <span class="addon-unit">ml</span>
+                  </div>
+                </td>
+                <td class="num" id="cell-citrate-macro">-</td>
+                <td class="num" id="cell-citrate-kcal"><strong>0 kcal</strong></td>
+              </tr>
+
+              <!-- 4. Clevidipino -->
+              <tr>
+                <td><strong>Clevidipino</strong></td>
+                <td><span class="badge badge-info">Emulsió lipídica (0,2g líp/ml · 2 kcal/ml)</span></td>
+                <td class="num">
+                  <div class="input-addon">
+                    <input type="number" id="inp-clevidipine-rate" class="form-control" min="0" step="0.5" style="text-align:right;">
+                    <span class="addon-unit">ml/h</span>
+                  </div>
+                </td>
+                <td class="num">
+                  <div class="input-addon">
+                    <input type="number" id="inp-clevidipine-hours" class="form-control" min="1" max="24" step="1" style="text-align:right; width:70px;">
+                    <span class="addon-unit">h</span>
+                  </div>
+                </td>
+                <td class="num">
+                  <div class="input-addon">
+                    <input type="number" id="inp-clevidipine-vol" class="form-control" min="0" step="10" style="text-align:right;">
+                    <span class="addon-unit">ml</span>
+                  </div>
+                </td>
+                <td class="num" id="cell-clevidipine-macro">0,0 g lípids</td>
+                <td class="num" id="cell-clevidipine-kcal"><strong>0 kcal</strong></td>
+              </tr>
+
+              <!-- 5. Lactulosa -->
+              <tr>
+                <td><strong>Lactulosa (Duphalac®)</strong></td>
+                <td><span class="badge badge-info">Sobres / Unitats 15 ml (10g gluc = 40 kcal/u)</span></td>
+                <td class="num">-</td>
+                <td class="num">-</td>
+                <td class="num">
+                  <div class="input-addon">
+                    <input type="number" id="inp-lactulose-units" class="form-control" min="0" step="1" style="text-align:right;">
+                    <span class="addon-unit">unitats</span>
+                  </div>
+                </td>
+                <td class="num" id="cell-lactulose-macro">0,0 g glucosa</td>
+                <td class="num" id="cell-lactulose-kcal"><strong>0 kcal</strong></td>
+              </tr>
+
+              <!-- Fila Total No Nutricional -->
+              <tr style="background:var(--primary-soft); font-weight:800;">
+                <td colspan="4"><strong>TOTAL APORTS CALÒRICS NO NUTRICIONALS</strong></td>
+                <td class="num" id="cell-nonnutr-total-vol">0 ml</td>
+                <td class="num" id="cell-nonnutr-total-macro">0g gluc · 0g líp</td>
+                <td class="num" id="cell-nonnutr-total-kcal" style="color:var(--primary-dark); font-size:15px;">0 kcal</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top:12px; display:flex; justify-content:flex-end;">
+          <button type="button" class="btn btn-sm btn-outline" id="btn-clear-non-nutr">Posar tots els aports no nutricionals a 0</button>
+        </div>
+      </div>
+
+      <div class="screen-footer">
+        <button type="button" class="btn btn-outline" id="btn-back-to-2">← Tornar a Objectius del Dia</button>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-3">
+          Confirmar i Passar a Valorar Ingesta Oral (Pantalla 4) →
+        </button>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- PANTALLA 4: VALORAR SI ES POT FER INGESTA ORAL (1a VIA)             -->
+    <!-- ================================================================== -->
+    <section class="app-screen" id="screen-4">
+      <div class="screen-header">
+        <div>
+          <span class="screen-step-tag">Pantalla 4 · 1a Via d'Aportació Nutricional (Via Fisiològica)</span>
+          <h2>🍽️ Valoració d'Ingesta per Via Oral (± Suplements)</h2>
+          <p>Indica si el pacient pot alimentar-se per via oral. Si marques «No», passaràs directament a la pantalla de Nutrició Enteral.</p>
+        </div>
+      </div>
+
+      <div class="screen-body">
+        <div class="route-context-banner" id="context-banner-screen-4"></div>
+
+        <div class="decision-gate-box">
+          <h3>Es pot fer Ingesta Oral avui (dieta hospitalària i/o suplements orals)?</h3>
+          <p>Valora l'estat de consciència, ventilació mecànica i seguretat de la deglució.</p>
+          <div class="decision-buttons-row">
+            <button type="button" class="decision-big-btn" id="btn-screen4-oral-yes">
+              ✅ SÍ, pot fer Ingesta Oral
+            </button>
+            <button type="button" class="decision-big-btn" id="btn-screen4-oral-no">
+              ❌ NO pot fer Via Oral → Passar a Nutrició Enteral
+            </button>
+          </div>
+        </div>
+
+        <!-- Configurador de Dieta Oral + Comstock + Suplements (només visible si SÍ) -->
+        <div id="oral-config-panel" style="display:none;">
+          <div style="border:2px solid var(--primary); border-radius:12px; padding:18px; background:#fff;">
+            <div class="form-grid" style="align-items:end;">
+              <div class="form-group" style="grid-column: span 2;">
+                <label>Dieta Hospitalària Pautada (Catàleg de 61 Dietes)</label>
+                <select id="inp-oral-diet" class="form-control" style="font-weight:700;"></select>
+              </div>
+              <div class="form-group">
+                <label>% Ingesta Global de la Safata (Escala Comstock)</label>
+                <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                  <button type="button" class="btn btn-sm btn-outline" data-quick-tray-pct="0">0%</button>
+                  <button type="button" class="btn btn-sm btn-outline" data-quick-tray-pct="0.25">25%</button>
+                  <button type="button" class="btn btn-sm btn-outline" data-quick-tray-pct="0.5">50%</button>
+                  <button type="button" class="btn btn-sm btn-outline" data-quick-tray-pct="0.75">75%</button>
+                  <button type="button" class="btn btn-sm btn-outline" data-quick-tray-pct="1">100%</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="oral-diet-detail-banner" style="margin-top:12px; padding:12px; background:var(--primary-soft); border:1px solid #99f6e4; border-radius:8px; font-size:13px;"></div>
+
+            <!-- Desplegable per detallar per àpats i pujar fotos de la safata -->
+            <div style="margin-top:12px;">
+              <button type="button" class="btn btn-sm btn-outline" id="btn-toggle-comstock-meals">
+                📷 Detallar Ingesta per Àpats (Esmorzar 20% · Dinar 40% · Berenar 10% · Sopar 30%) i Fotos Safata ▾
+              </button>
+              <div id="comstock-meals-wrapper" style="display:none; margin-top:10px;">
+                <div class="comstock-grid-2" id="comstock-meals-container"></div>
+              </div>
+            </div>
+
+            <!-- Suplements Nutricionals Orals i Mòduls -->
+            <div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--border);">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                <div>
+                  <strong style="font-size:14px;">🥤 Suplements Nutricionals Orals i Mòduls</strong>
+                  <span style="font-size:12px; color:var(--text-muted); margin-left:6px;">(Ensure Plus Advance®, Glucerna Advance 1.6®, Fresubin 2 Kcal creme®, Protifar®, MCT...)</span>
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  <button type="button" class="btn btn-sm btn-secondary" id="btn-auto-suggest-supp">⚡ Cobrir dèficit oral amb Suplement/Protifar</button>
+                  <button type="button" class="btn btn-sm btn-primary" id="btn-add-supplement">+ Afegir Suplement o Mòdul</button>
+                </div>
+              </div>
+              <div id="supplements-active-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-footer">
+        <button type="button" class="btn btn-outline" id="btn-back-to-3">← Tornar a No Nutricionals</button>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-outline" id="btn-skip-to-monitoring-from-4">
+            🩺 Ja està cobert · Passar a Monitorització GI/Metabòlica →
+          </button>
+          <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-4">
+            Continuar a Valorar Nutrició Enteral (Pantalla 5) →
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- PANTALLA 5: VALORAR SI ES POT FER NUTRICIÓ ENTERAL (2a VIA)         -->
+    <!-- ================================================================== -->
+    <section class="app-screen" id="screen-5">
+      <div class="screen-header">
+        <div>
+          <span class="screen-step-tag">Pantalla 5 · 2a Via d'Aportació (Sonda SNG / SNJ / GTT)</span>
+          <h2>🍼 Valoració de Nutrició Enteral (NE)</h2>
+          <p>Si la via oral no és possible o no arriba als requeriments i el tracte gastrointestinal és funcionant, configura la Nutrició Enteral.</p>
+        </div>
+      </div>
+
+      <div class="screen-body">
+        <div class="route-context-banner" id="context-banner-screen-5"></div>
+
+        <div class="decision-gate-box">
+          <h3>Es pot / cal administrar Nutrició Enteral per sonda avui?</h3>
+          <p>Si marques «No», passaràs directament a la pantalla de Nutrició Parenteral.</p>
+          <div class="decision-buttons-row">
+            <button type="button" class="decision-big-btn" id="btn-screen5-ne-yes">
+              ✅ SÍ, pautar Nutrició Enteral (NE)
+            </button>
+            <button type="button" class="decision-big-btn" id="btn-screen5-ne-no">
+              ❌ NO precisa / Contraindicada → Passar a Parenteral
+            </button>
+          </div>
+        </div>
+
+        <!-- Configurador de Nutrició Enteral (només visible si SÍ) -->
+        <div id="ne-config-panel" style="display:none;">
+          <div style="border:2px solid var(--primary); border-radius:12px; padding:18px; background:#fff;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+              <strong style="font-size:14.5px; color:var(--primary-dark);">Selecció de Fórmula Enteral i Velocitat d'Infusió</strong>
+              <button type="button" class="btn btn-sm btn-primary" id="btn-auto-ne-card">
+                ⚡ Ajustar Volum NE per cobrir el 100% dels requeriments restants
+              </button>
+            </div>
+
+            <div class="form-group" style="margin-bottom:14px;">
+              <label>Fórmula Enteral (Catàleg Oficial)</label>
+              <select id="inp-ne-formula" class="form-control" style="font-weight:700;"></select>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Volum Enteral en 24h</label>
+                <div class="input-addon">
+                  <input type="number" id="inp-ne-vol" class="form-control" min="0" max="3000" step="25">
+                  <span class="addon-unit">ml/24h</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Velocitat Bomba Infusió (24h)</label>
+                <div class="input-addon">
+                  <input type="number" id="inp-ne-rate" class="form-control" min="0" max="150" step="1">
+                  <span class="addon-unit">ml/h</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Aigua Lliure per Sonda</label>
+                <div class="input-addon">
+                  <input type="number" id="inp-free-water" class="form-control" min="0" step="50">
+                  <span class="addon-unit">ml/24h</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Mòdul Proteic per Sonda (Protifar®)</label>
+                <button type="button" class="btn btn-outline" id="btn-add-protifar-ne" style="height:38px;">
+                  + Afegir Cacitos de Protifar®
+                </button>
+              </div>
+            </div>
+
+            <div id="ne-formula-details" style="margin-top:14px; padding:12px; background:var(--primary-soft); border:1px solid #99f6e4; border-radius:8px; font-size:13px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-footer">
+        <button type="button" class="btn btn-outline" id="btn-back-to-4">← Tornar a Via Oral</button>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-outline" id="btn-skip-to-monitoring-from-5">
+            🩺 Ja està cobert · Passar a Monitorització GI/Metabòlica →
+          </button>
+          <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-5">
+            Continuar a Valorar Nutrició Parenteral (Pantalla 6) →
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- PANTALLA 6: VALORAR SI CAL NUTRICIÓ PARENTERAL (3a VIA)             -->
+    <!-- ================================================================== -->
+    <section class="app-screen" id="screen-6">
+      <div class="screen-header">
+        <div>
+          <span class="screen-step-tag">Pantalla 6 · 3a Via d'Aportació (Total o Complementària)</span>
+          <h2>💧 Valoració de Nutrició Parenteral (NP)</h2>
+          <p>Valora si el pacient precisa Nutrició Parenteral (per tracte GI no funcionant o per cobrir el dèficit d'Oral/Enteral).</p>
+        </div>
+      </div>
+
+      <div class="screen-body">
+        <div class="route-context-banner" id="context-banner-screen-6"></div>
+
+        <div class="decision-gate-box">
+          <h3>Cal administrar Nutrició Parenteral (NP) avui?</h3>
+          <p>Si marques «No», passaràs directament a la pestanya de Monitorització Gastrointestinal i Metabòlica.</p>
+          <div class="decision-buttons-row">
+            <button type="button" class="decision-big-btn" id="btn-screen6-np-yes">
+              ✅ SÍ, pautar Nutrició Parenteral (NP)
+            </button>
+            <button type="button" class="decision-big-btn" id="btn-screen6-np-no">
+              ❌ NO precisa NP → Passar a Monitorització GI i Metabòlica
+            </button>
+          </div>
+        </div>
+
+        <!-- Configurador de Nutrició Parenteral (només visible si SÍ) -->
+        <div id="np-config-panel" style="display:none;">
+          <div style="border:2px solid var(--primary); border-radius:12px; padding:18px; background:#fff;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+              <strong style="font-size:14.5px; color:var(--primary-dark);">Pauta de Nutrició Parenteral Personalitzada / Farmàcia</strong>
+              <button type="button" class="btn btn-sm btn-primary" id="btn-auto-np">
+                ⚡ Autocalcular NP pel dèficit restant
+              </button>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Tipus de NP</label>
+                <select id="inp-np-type" class="form-control">
+                  <option value="Nutrició parenteral farmàcia">Nutrició parenteral farmàcia (Personalitzada)</option>
+                  <option value="Nutriplasmal">Nutriplasmal (Perifèrica comercial)</option>
+                  <option value="Tricameral Central">Tricameral Central Estàndard</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Volum Total Bossa NP</label>
+                <div class="input-addon">
+                  <input type="number" id="inp-np-vol" class="form-control" min="0" step="50">
+                  <span class="addon-unit">ml/24h</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Aminoven 15% (Proteïnes)</label>
+                <div class="input-addon">
+                  <input type="number" id="inp-np-aminoven" class="form-control" min="0" step="2.5">
+                  <span class="addon-unit">g/24h</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Glucosa</label>
+                <div class="input-addon">
+                  <input type="number" id="inp-np-glucose" class="form-control" min="0" step="10">
+                  <span class="addon-unit">g/24h</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Smoflipid 20% (Lípids)</label>
+                <div class="input-addon">
+                  <input type="number" id="inp-np-smoflipid" class="form-control" min="0" step="5">
+                  <span class="addon-unit">g/24h</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Electròlits i Micronutrients -->
+            <div style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--border);">
+              <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); margin-bottom:8px;">ELECTRÒLITS I MICRONUTRIENTS NP</div>
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap:8px;">
+                <div class="form-group"><label>Na (mEq)</label><input type="number" id="inp-np-na" class="form-control"></div>
+                <div class="form-group"><label>K (mEq)</label><input type="number" id="inp-np-k" class="form-control"></div>
+                <div class="form-group"><label>Cl (mEq)</label><input type="number" id="inp-np-cl" class="form-control"></div>
+                <div class="form-group"><label>P (mmol)</label><input type="number" id="inp-np-p" class="form-control"></div>
+                <div class="form-group"><label>Ca (mEq)</label><input type="number" id="inp-np-ca" class="form-control"></div>
+                <div class="form-group"><label>Vitamines (ml)</label><input type="number" id="inp-np-vit" class="form-control"></div>
+                <div class="form-group"><label>Oligoelem. (ml)</label><input type="number" id="inp-np-oligo" class="form-control"></div>
+              </div>
+            </div>
+
+            <div id="np-calc-summary" style="margin-top:12px; padding:12px; background:var(--primary-soft); border:1px solid #99f6e4; border-radius:8px; font-size:13px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-footer">
+        <button type="button" class="btn btn-outline" id="btn-back-to-5">← Tornar a Nutrició Enteral</button>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-6">
+          🩺 Passar a Monitorització Tolerància GI i Metabòlica (Pantalla 7) →
+        </button>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- PANTALLA 7: MONITORITZACIÓ TOLERÀNCIA GI I METABÒLICA (SETMANAL)   -->
+    <!-- ================================================================== -->
+    <section class="app-screen" id="screen-7">
+      <div class="screen-header">
+        <div>
+          <span class="screen-step-tag">Pantalla 7 · Seguiment Clínic i Analític Setmanal</span>
+          <h2>🩺 Monitorització de Tolerància Gastrointestinal i Metabòlica</h2>
+          <p>Registra la tolerància GI (retencions, estrenyiment, diarrea) i els paràmetres analítics (Triglicèrids, Ferro, Vit D, Tiamina, Balanç N, Glicèmies/Insulina 7d per l'Índex de Resistència a la Insulina, i Urea/Creatinina per l'UCR).</p>
+        </div>
+      </div>
+
+      <div class="screen-body">
+        <!-- BLOC 1: TOLERÀNCIA GASTROINTESTINAL -->
+        <div style="border:1px solid var(--border-strong); border-radius:12px; padding:16px; background:var(--surface-alt); margin-bottom:20px;">
+          <h3 style="font-size:15px; font-weight:800; color:var(--primary-dark); margin-bottom:12px;">
+            1️⃣ Tolerància Gastrointestinal (Retencions Gàstriques, Estrenyiment, Diarrea)
+          </h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Retenció Gàstrica Màxima (VRG)</label>
+              <div class="input-addon">
+                <input type="number" id="inp-gi-vrg" class="form-control" min="0" step="25" placeholder="0">
+                <span class="addon-unit">ml</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Nàusees / Vòmits / Regurgitació</label>
+              <select id="inp-gi-vomiting" class="form-control">
+                <option value="no">No (Bona tolerància alta)</option>
+                <option value="nausea">Nàusees / Plenitud gàstrica</option>
+                <option value="vomiting">Vòmits / Regurgitació activa</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Dies sense deposició (Estrenyiment)</label>
+              <div class="input-addon">
+                <input type="number" id="inp-gi-constipation-days" class="form-control" min="0" max="20" step="1" placeholder="0">
+                <span class="addon-unit">dies</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>En tractament amb Opiacis?</label>
+              <select id="inp-gi-opioids" class="form-control">
+                <option value="false">No</option>
+                <option value="true">Sí (Fentanil / Morfina / Remifentanil)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Diarrea (Deposicions líquides/24h)</label>
+              <div class="input-addon">
+                <input type="number" id="inp-gi-diarrhea-count" class="form-control" min="0" max="25" step="1" placeholder="0">
+                <span class="addon-unit">dep/24h</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Distensió Abdominal / Ili</label>
+              <select id="inp-gi-distension" class="form-control">
+                <option value="normal">Abdomen tou, sense distensió</option>
+                <option value="mild">Distensió abdominal lleu-moderada</option>
+                <option value="ileus">Sospita d'ili paralític / PIA elevada</option>
+              </select>
+            </div>
+          </div>
+          <!-- Recomanacions automàtiques del Protocol Clínic segons la clínica GI -->
+          <div id="gi-protocol-alerts"></div>
+        </div>
+
+        <!-- BLOC 2: UREA, CREATININA (UCR) + BALANÇ NITROGENAT -->
+        <div style="border:1px solid var(--border-strong); border-radius:12px; padding:16px; background:#fff; margin-bottom:20px;">
+          <h3 style="font-size:15px; font-weight:800; color:var(--primary-dark); margin-bottom:12px;">
+            2️⃣ Catabolisme Proteic: Índex Urea/Creatinina (UCR) i Balanç Nitrogenat
+          </h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Urea Plasmàtica</label>
+              <div class="input-addon">
+                <input type="number" id="inp-lab-urea-plasma" class="form-control" min="0" step="1" placeholder="Ex: 65">
+                <span class="addon-unit">mg/dL</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Creatinina Plasmàtica</label>
+              <div class="input-addon">
+                <input type="number" id="inp-lab-creatinine" class="form-control" min="0.1" step="0.05" placeholder="Ex: 0.8">
+                <span class="addon-unit">mg/dL</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Excreció d'Urea / N Ureic Orina 24h</label>
+              <div class="input-addon">
+                <input type="number" id="inp-urea-24h" class="form-control" min="0" max="100" step="0.5" placeholder="Ex: 20">
+                <span class="addon-unit">g/24h</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="calc-results-grid" id="ucr-and-nbal-results"></div>
+        </div>
+
+        <!-- BLOC 3: GLICÈMIES I REQUERIMENTS D'INSULINA (ÚLTIMA SETMANA) -> ÍNDEX DE RESISTÈNCIA A LA INSULINA -->
+        <div style="border:1px solid var(--border-strong); border-radius:12px; padding:16px; background:var(--surface-alt); margin-bottom:20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            <div>
+              <h3 style="font-size:15px; font-weight:800; color:var(--primary-dark);">
+                3️⃣ Control Glicèmic i Índex de Resistència a la Insulina (Seguiment Diari i Última Setmana)
+              </h3>
+              <p style="font-size:12px; color:var(--text-muted);">Introdueix les glicèmies i la dosi d'insulina d'avui i/o dels últims 7 dies per calcular l'Índex de Resistència a la Insulina (IRI) i detectar el pas de fase catabòlica a anabòlica.</p>
+            </div>
+          </div>
+
+          <div class="form-grid" style="margin-bottom:14px;">
+            <div class="form-group">
+              <label>Glicèmia Mitjana Avui</label>
+              <div class="input-addon">
+                <input type="number" id="inp-gly-mean" class="form-control" min="40" max="500" step="1" placeholder="140">
+                <span class="addon-unit">mg/dL</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Glicèmia Màxima Avui</label>
+              <div class="input-addon">
+                <input type="number" id="inp-gly-max" class="form-control" min="40" max="600" step="1" placeholder="165">
+                <span class="addon-unit">mg/dL</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Insulina Ràpida / BIC en 24h</label>
+              <div class="input-addon">
+                <input type="number" id="inp-insulin-24h" class="form-control" min="0" max="300" step="1" placeholder="24">
+                <span class="addon-unit">UI/24h</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Velocitat Mitjana BIC Insulina</label>
+              <div class="input-addon">
+                <input type="number" id="inp-insulin-rate" class="form-control" min="0" max="20" step="0.1" placeholder="1.0">
+                <span class="addon-unit">UI/h</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Insulina Lenta Basal</label>
+              <div class="input-addon">
+                <input type="number" id="inp-insulin-basal" class="form-control" min="0" max="150" step="1" placeholder="0">
+                <span class="addon-unit">UI/24h</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Taula compacta dels 7 dies de la setmana per calcular l'Índex de Resistència a la Insulina setmanal -->
+          <div style="margin-top:10px;">
+            <div style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:6px;">
+              📅 REGISTRE DE GLICÈMIES I REQUERIMENTS D'INSULINA EN L'ÚLTIMA SETMANA (D1 a D7):
+            </div>
+            <div class="table-wrap">
+              <table class="clinical-table" style="background:#fff; border:1px solid var(--border);">
+                <thead>
+                  <tr>
+                    <th>Paràmetre Setmanal</th>
+                    <th class="num">Dia -6</th>
+                    <th class="num">Dia -5</th>
+                    <th class="num">Dia -4</th>
+                    <th class="num">Dia -3</th>
+                    <th class="num">Dia -2</th>
+                    <th class="num">Ahir (D-1)</th>
+                    <th class="num" style="background:var(--primary-soft);">Avui (D0)</th>
+                    <th class="num">Mitjana 7d</th>
+                  </tr>
+                </thead>
+                <tbody id="weekly-glycemia-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Resultat de l'Índex de Resistència a la Insulina -->
+          <div class="calc-results-grid" id="insulin-resistance-results"></div>
+        </div>
+
+        <!-- BLOC 4: PARÀMETRES ANALÍTICS SETMANALS (TRIGLICÈRIDS, ESTUDI DE FERRO, VITAMINA D, TIAMINA) -->
+        <div style="border:1px solid var(--border-strong); border-radius:12px; padding:16px; background:#fff;">
+          <h3 style="font-size:15px; font-weight:800; color:var(--primary-dark); margin-bottom:12px;">
+            4️⃣ Paràmetres de Seguiment Analític Setmanal (Triglicèrids, Estudi de Ferro, Vitamina D, Tiamina)
+          </h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Triglicèrids Plasmàtics</label>
+              <div class="input-addon">
+                <input type="number" id="inp-lab-tg" class="form-control" min="20" max="2000" step="5" placeholder="Ex: 180">
+                <span class="addon-unit">mg/dL</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Ferro Sèric</label>
+              <div class="input-addon">
+                <input type="number" id="inp-lab-iron" class="form-control" min="0" max="500" step="1" placeholder="Ex: 45">
+                <span class="addon-unit">µg/dL</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Ferritina</label>
+              <div class="input-addon">
+                <input type="number" id="inp-lab-ferritin" class="form-control" min="0" max="5000" step="5" placeholder="Ex: 320">
+                <span class="addon-unit">ng/mL</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Transferrina</label>
+              <div class="input-addon">
+                <input type="number" id="inp-lab-transferrin" class="form-control" min="50" max="600" step="5" placeholder="Ex: 170">
+                <span class="addon-unit">mg/dL</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Índex Sat. Transferrina (IST)</label>
+              <div class="input-addon">
+                <input type="number" id="inp-lab-tsi" class="form-control" min="0" max="100" step="1" placeholder="Ex: 18">
+                <span class="addon-unit">%</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Vitamina D (25-OH)</label>
+              <div class="input-addon">
+                <input type="number" id="inp-lab-vitd" class="form-control" min="0" max="150" step="1" placeholder="Ex: 16">
+                <span class="addon-unit">ng/mL</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Tiamina (Vitamina B1)</label>
+              <div class="input-addon">
+                <input type="number" id="inp-lab-thiamine" class="form-control" min="0" max="500" step="1" placeholder="Ex: 95">
+                <span class="addon-unit">nmol/L</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Suplementació Tiamina activa?</label>
+              <select id="inp-lab-thiamine-supp" class="form-control">
+                <option value="no">No</option>
+                <option value="100mg">Sí · 100 mg/24h IV/VO</option>
+                <option value="300mg">Sí · Pauta Refeeding (300mg + 100mg/d)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Prealbúmina</label>
+              <div class="input-addon">
+                <input type="number" id="inp-lab-prealbumin" class="form-control" min="0" max="60" step="0.5" placeholder="Ex: 14">
+                <span class="addon-unit">mg/dL</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="weekly-labs-alerts" style="margin-top:12px;"></div>
+        </div>
+      </div>
+
+      <div class="screen-footer">
+        <button type="button" class="btn btn-outline" id="btn-back-to-6">← Tornar a Nutrició Parenteral</button>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-7">
+          📊 Obrir Balanç Final del Dia i Nota pel Curs Clínic (Pantalla 8) →
+        </button>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- PANTALLA 8: BALANÇ FINAL DEL DIA I NOTA PEL CURS CLÍNIC (SAP)       -->
+    <!-- ================================================================== -->
+    <section class="app-screen" id="screen-8">
+      <div class="screen-header">
+        <div>
+          <span class="screen-step-tag">Pantalla 8 · Resum Final i Seguiment Evolutiu</span>
+          <h2 id="screen-8-title">📊 Balanç Final del Dia i Nota pel Curs Clínic (SAP)</h2>
+          <p>Comprovació global d'aports vs objectius del dia, índexs metabòlics (UCR, IRI, Balanç N) i generació d'informe clínic.</p>
+        </div>
+      </div>
+
+      <div class="screen-body">
+        <!-- Taula de Balanç Global del Dia -->
+        <div class="table-wrap">
+          <table class="clinical-table">
+            <thead>
+              <tr>
+                <th>Paràmetre</th>
+                <th class="num">No Nutricionals</th>
+                <th class="num">Via Oral (Safata)</th>
+                <th class="num">Suplements / Mòduls</th>
+                <th class="num">Nutrició Enteral</th>
+                <th class="num">Nutrició Parenteral</th>
+                <th class="num">TOTAL APORTAT</th>
+                <th class="num">Aport / kg (o Taxa)</th>
+                <th class="num">OBJECTIU DIA</th>
+                <th class="num">% Adequació</th>
+              </tr>
+            </thead>
+            <tbody id="global-balance-tbody"></tbody>
+          </table>
+        </div>
+
+        <div id="metabolic-alerts-box" style="margin-top:12px;"></div>
+
+        <!-- Resum d'Índexs Metabòlics + Nota pel Curs Clínic -->
+        <div class="screen8-summary-grid">
+          <div style="border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--surface-alt);">
+            <h3 style="font-size:14px; font-weight:800; margin-bottom:10px;">🧪 Resum d'Índexs Metabòlics i Observacions</h3>
+            <div id="final-metabolic-summary-box" style="padding:10px; background:#fff; border:1px solid var(--border); border-radius:6px; font-size:12.5px; margin-bottom:12px;"></div>
+
+            <div class="form-group">
+              <label>Observacions clíniques del dia</label>
+              <textarea id="inp-clinical-notes" class="form-control" rows="4" placeholder="Ex: Bona tolerància a NE, es redueix NP..."></textarea>
+            </div>
+          </div>
+
+          <div style="border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--surface-alt);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <h3 style="font-size:14px; font-weight:800;">📝 Nota pel Curs Clínic (SAP / HCIS)</h3>
+              <button type="button" class="btn btn-sm btn-primary" id="btn-copy-note">📋 Copiar Nota Clínica</button>
+            </div>
+            <textarea id="clinical-note-textarea" class="clinical-note-box"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-footer no-print">
+        <button type="button" class="btn btn-outline" id="btn-back-to-7">← Tornar a Monitorització GI/Metabòlica</button>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-lg btn-outline" id="btn-footer-next-uci">
+            ➕ Nou Dia de Valoració a l'UCI (Obre Objectius Dia Següent)
+          </button>
+          <button type="button" class="btn btn-lg btn-secondary" id="btn-footer-next-planta">
+            🏥 Nou Dia de Seguiment a Planta (Obre Objectius Planta)
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL 1: GRÀFICA I TAULA D'EVOLUCIÓ MULTIDIA -->
+  <div class="modal-backdrop" id="modal-evolution">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3 style="font-size:16px;">📈 Evolució Nutricional del Pacient (UCI → Planta)</h3>
+        <button type="button" class="btn btn-sm btn-outline" id="btn-close-evolution-modal" style="background:transparent; color:#fff; border-color:#fff;">✕ Tancar</button>
+      </div>
+      <div class="modal-body">
+        <div id="evolution-svg-chart" style="margin-bottom:18px;"></div>
+        <div class="table-wrap">
+          <table class="clinical-table">
+            <thead>
+              <tr>
+                <th>Dia / Data</th>
+                <th>Ubicació / Fase</th>
+                <th class="num">Pes / Treball</th>
+                <th class="num">No Nutr</th>
+                <th class="num">Oral + Supl</th>
+                <th class="num">Enteral</th>
+                <th class="num">Parenteral</th>
+                <th class="num">Total Kcal / Obj</th>
+                <th class="num">Total Prot / Obj</th>
+                <th class="num">UCR / Balanç N</th>
+              </tr>
+            </thead>
+            <tbody id="evolution-table-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: CATÀLEG DE FÓRMULES, 61 DIETES HOSPITALÀRIES I PROTOCOL CLÍNIC -->
+  <div class="modal-backdrop" id="modal-catalog">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3 style="font-size:16px;">📖 Catàleg de Fórmules Enterals, Suplements, 61 Dietes i Protocol Clínic</h3>
+        <button type="button" class="btn btn-sm btn-outline" id="btn-close-catalog-modal" style="background:transparent; color:#fff; border-color:#fff;">✕ Tancar</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom:20px;">
+          <h4 style="font-size:14.5px; margin-bottom:10px; color:var(--primary-dark);">🍼 Fórmules Enterals, Suplements Orals i Mòduls</h4>
+          <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap:10px;" id="catalog-enteral-grid"></div>
+        </div>
+
+        <div style="margin-bottom:20px; border-top:1px solid var(--border); padding-top:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+            <h4 style="font-size:14.5px; color:var(--primary-dark);">🍽️ Manual de les 61 Dietes Hospitalàries</h4>
+            <input type="text" id="diet-search-input" class="form-control" placeholder="🔍 Cercar dieta o indicació..." style="width:260px;">
+          </div>
+          <div class="table-wrap" style="max-height:360px; overflow-y:auto;">
+            <table class="clinical-table">
+              <thead>
+                <tr>
+                  <th>Dieta / Grup</th>
+                  <th class="num">Kcal</th>
+                  <th class="num">Prot</th>
+                  <th class="num">Líp</th>
+                  <th class="num">HC</th>
+                  <th class="num">Fibra</th>
+                  <th>Indicacions i Menú Tipus</th>
+                </tr>
+              </thead>
+              <tbody id="catalog-diets-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid var(--border); padding-top:16px;">
+          <h4 style="font-size:14.5px; margin-bottom:10px; color:var(--primary-dark);">📋 Punts Clau del Protocol del Pacient Crític</h4>
+          <div id="protocol-guides-container" class="protocol-guides-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
