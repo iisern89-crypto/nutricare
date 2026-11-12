@@ -299,7 +299,7 @@
     d.currentScreen = screenNum;
     saveState();
     renderAll();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
   }
 
   // =========================================================================
@@ -974,14 +974,14 @@
       });
     });
 
-    // Desplaçament automàtic horitzontal a la pestanya activa en dispositius mòbils
+    // Desplaçament automàtic horitzontal a la pestanya activa dins de la barra (sense moure mai la finestra del navegador)
     if (typeof requestAnimationFrame === "function") {
       requestAnimationFrame(() => {
-        bar.querySelector(".step-Crumb.current")?.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-          inline: "center"
-        });
+        const cur = bar.querySelector(".step-Crumb.current");
+        if (cur && typeof bar.scrollTo === "function") {
+          const targetLeft = cur.offsetLeft - (bar.clientWidth / 2) + (cur.clientWidth / 2);
+          bar.scrollTo({ left: Math.max(0, targetLeft), behavior: "smooth" });
+        }
       });
     }
   }
@@ -2264,7 +2264,7 @@
     p.activeDayIndex = p.days.length - 1;
     saveState();
     renderAll();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
   }
 
   function resizeImageDataUrl(dataUrl, maxWidth, callback) {
