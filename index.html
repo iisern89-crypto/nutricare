@@ -87,7 +87,7 @@
     <section class="app-screen" id="screen-1">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pas 1 de 9 · Identificació del Malalt</span>
+          <span class="screen-step-tag">Pas 1 de 10 · Identificació del Malalt</span>
           <h2>👤 Introducció del Malalt</h2>
           <p>Identificació del pacient, dades demogràfiques bàsiques i antecedents clínics principals.</p>
         </div>
@@ -153,26 +153,32 @@
       </div>
 
       <div class="screen-footer">
-        <span style="font-size:12.5px; color:var(--text-muted);">Completa les dades bàsiques per continuar a la valoració nutricional inicial.</span>
+        <span style="font-size:12.5px; color:var(--text-muted);">Completa les dades bàsiques per continuar a l'antropometria inicial.</span>
         <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-1">
-          Continuar a la Valoració Nutricional (Pas 2) →
+          Continuar a Antropometria (Pas 2) →
         </button>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 2: VALORACIÓ NUTRICIONAL A L'INGRÉS                      -->
+    <!-- PANTALLA 2: ANTROPOMETRIA I VALORACIÓ INICIAL                    -->
     <!-- ================================================================== -->
     <section class="app-screen" id="screen-2">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pas 2 de 9 · Valoració Antropomètrica Inicial</span>
-          <h2>📏 Valoració Nutricional a l'Ingrés</h2>
+          <span class="screen-step-tag">Pas 2 de 10 · Valoració Antropomètrica Inicial</span>
+          <h2>📏 Valoració Antropomètrica i Pes de Treball</h2>
           <p>Introdueix l'alçada, el pes actual a l'ingrés i el pes habitual. Es calcularà automàticament el Pes de Treball, l'IMC i el risc de realimentació.</p>
         </div>
       </div>
 
       <div class="screen-body">
+        <!-- Sub-pestanyes de navegació directa -->
+        <div class="admission-subtabs-bar">
+          <button type="button" class="adm-subtab active" id="subtab-to-s2">📏 1. Antropometria i Realimentació</button>
+          <button type="button" class="adm-subtab" id="subtab-to-s3">📊 2. Escales de Risc i GLIM</button>
+        </div>
+
         <div class="form-grid">
           <div class="form-group">
             <label>Altura / Talla <span class="req-star">*</span></label>
@@ -210,112 +216,126 @@
         <!-- Alerta de Síndrome de Realimentació -->
         <div id="admission-risk-alert"></div>
 
-        <!-- ============================================================== -->
-        <!-- ESCALES DE RISC NUTRICIONAL: NRS-2002 I NUTRIC SCORE          -->
-        <!-- ============================================================== -->
-        <div class="screening-section" style="margin-top:24px;">
-          <div class="section-title-row" style="margin-bottom:14px;">
-            <h3 style="font-size:16px; font-weight:800; color:var(--text); display:flex; align-items:center; gap:8px;">
-              📊 Escales de Risc Nutricional (NRS-2002 i NUTRIC Score)
-            </h3>
-            <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;">
-              Estratificació del risc de desnutrició segons guies oficials ESPEN / SEMICYUC per a pacients hospitalitzats i crítics.
-            </p>
+        <div id="step-2-validation-msg" class="alert-box alert-danger" style="display:none; margin-top:16px;"></div>
+      </div>
+
+      <div class="screen-footer">
+        <button type="button" class="btn btn-outline" id="btn-back-to-1">← Tornar a Dades del Malalt</button>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-2">
+          Continuar a Escales de Nutrició (Pas 3) →
+        </button>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- PANTALLA 3: ESCALES DE RISC NUTRICIONAL I CRITERIS GLIM           -->
+    <!-- ================================================================== -->
+    <section class="app-screen" id="screen-3">
+      <div class="screen-header">
+        <div>
+          <span class="screen-step-tag">Pas 3 de 10 · Escales de Risc i Desnutrició</span>
+          <h2>📊 Escales de Risc Nutricional (NRS-2002 i NUTRIC) i GLIM</h2>
+          <p>Estratificació del risc de desnutrició segons guies oficials ESPEN / SEMICYUC per a pacients hospitalitzats i crítics.</p>
+        </div>
+      </div>
+
+      <div class="screen-body">
+        <!-- Sub-pestanyes de navegació directa -->
+        <div class="admission-subtabs-bar">
+          <button type="button" class="adm-subtab" id="subtab2-to-s2">📏 1. Antropometria i Realimentació</button>
+          <button type="button" class="adm-subtab active" id="subtab2-to-s3">📊 2. Escales de Risc i GLIM</button>
+        </div>
+
+        <div class="screening-grid">
+          <!-- TARGETA 1: NRS-2002 -->
+          <div class="score-card" id="card-nrs2002">
+            <div class="score-card-header">
+              <div>
+                <h4 style="font-size:14.5px; font-weight:800; margin:0; color:var(--text);">📋 NRS-2002 (ESPEN)</h4>
+                <span style="font-size:11.5px; color:var(--text-muted);">Nutritional Risk Screening 2002 · Hospitalari</span>
+              </div>
+              <span id="badge-nrs-quick" class="badge">--</span>
+            </div>
+            <div class="score-card-body">
+              <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-size:12px; font-weight:700;">1. Estat Nutricional (0 a 3 punts)</label>
+                <select id="sel-nrs-nutritional" class="form-control form-control-sm">
+                  <option value="0">0 pts · Estat normal / Pèrdua de pes &lt; 5%</option>
+                  <option value="1">1 pt · Lleu: Pèrdua &gt; 5% en 3 mesos O Ingesta 50-75% setmana prèvia</option>
+                  <option value="2">2 pts · Moderat: Pèrdua &gt; 5% en 2 mesos O IMC 18.5-20.5 O Ingesta 25-50%</option>
+                  <option value="3">3 pts · Greu: Pèrdua &gt; 5% en 1 mes (&gt;15% en 3m) O IMC &lt; 18.5 O Ingesta 0-25%</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-size:12px; font-weight:700;">2. Gravetat de la Malaltia / Estrès (0 a 3 punts)</label>
+                <select id="sel-nrs-disease" class="form-control form-control-sm">
+                  <option value="0">0 pts · Requeriments normals (ingrés estable, cirurgia menor)</option>
+                  <option value="1">1 pt · Lleu: Fractura maluc, cirrosi, MPOC greu, cirurgia major abdominal</option>
+                  <option value="2">2 pts · Moderat: Cirurgia abdominal complicada, pneumònia greu, politrauma</option>
+                  <option value="3">3 pts · Greu: Crític UCI (VM / APACHE&gt;10), xoc sèptic, TCE greu, TMO</option>
+                </select>
+              </div>
+              <div class="score-row-info" id="row-nrs-age-info" style="font-size:12px; padding:7px 10px; background:var(--surface-alt); border-radius:6px; margin-bottom:12px; border:1px solid var(--border);">
+                <!-- Calculat automàticament de l'edat -->
+              </div>
+              <div id="nrs-result-box" class="score-result-banner"></div>
+            </div>
           </div>
 
-          <div class="screening-grid">
-            <!-- TARGETA 1: NRS-2002 -->
-            <div class="score-card" id="card-nrs2002">
-              <div class="score-card-header">
-                <div>
-                  <h4 style="font-size:14.5px; font-weight:800; margin:0; color:var(--text);">📋 NRS-2002 (ESPEN)</h4>
-                  <span style="font-size:11.5px; color:var(--text-muted);">Nutritional Risk Screening 2002 · Hospitalari</span>
-                </div>
-                <span id="badge-nrs-quick" class="badge">--</span>
+          <!-- TARGETA 2: NUTRIC SCORE -->
+          <div class="score-card" id="card-nutric">
+            <div class="score-card-header">
+              <div>
+                <h4 style="font-size:14.5px; font-weight:800; margin:0; color:var(--text);">🩺 NUTRIC Score (mNUTRIC)</h4>
+                <span style="font-size:11.5px; color:var(--text-muted);">Heyland et al. · Específic Pacients Crítics UCI</span>
               </div>
-              <div class="score-card-body">
-                <div class="form-group" style="margin-bottom:12px;">
-                  <label style="font-size:12px; font-weight:700;">1. Estat Nutricional (0 a 3 punts)</label>
-                  <select id="sel-nrs-nutritional" class="form-control form-control-sm">
-                    <option value="0">0 pts · Estat normal / Pèrdua de pes &lt; 5%</option>
-                    <option value="1">1 pt · Lleu: Pèrdua &gt; 5% en 3 mesos O Ingesta 50-75% setmana prèvia</option>
-                    <option value="2">2 pts · Moderat: Pèrdua &gt; 5% en 2 mesos O IMC 18.5-20.5 O Ingesta 25-50%</option>
-                    <option value="3">3 pts · Greu: Pèrdua &gt; 5% en 1 mes (&gt;15% en 3m) O IMC &lt; 18.5 O Ingesta 0-25%</option>
-                  </select>
-                </div>
-                <div class="form-group" style="margin-bottom:12px;">
-                  <label style="font-size:12px; font-weight:700;">2. Gravetat de la Malaltia / Estrès (0 a 3 punts)</label>
-                  <select id="sel-nrs-disease" class="form-control form-control-sm">
-                    <option value="0">0 pts · Requeriments normals (ingrés estable, cirurgia menor)</option>
-                    <option value="1">1 pt · Lleu: Fractura maluc, cirrosi, MPOC greu, cirurgia major abdominal</option>
-                    <option value="2">2 pts · Moderat: Cirurgia abdominal complicada, pneumònia greu, politrauma</option>
-                    <option value="3">3 pts · Greu: Crític UCI (VM / APACHE&gt;10), xoc sèptic, TCE greu, TMO</option>
-                  </select>
-                </div>
-                <div class="score-row-info" id="row-nrs-age-info" style="font-size:12px; padding:7px 10px; background:var(--surface-alt); border-radius:6px; margin-bottom:12px; border:1px solid var(--border);">
-                  <!-- Calculat automàticament de l'edat -->
-                </div>
-                <div id="nrs-result-box" class="score-result-banner"></div>
-              </div>
+              <span id="badge-nutric-quick" class="badge">--</span>
             </div>
-
-            <!-- TARGETA 2: NUTRIC SCORE -->
-            <div class="score-card" id="card-nutric">
-              <div class="score-card-header">
-                <div>
-                  <h4 style="font-size:14.5px; font-weight:800; margin:0; color:var(--text);">🩺 NUTRIC Score (mNUTRIC)</h4>
-                  <span style="font-size:11.5px; color:var(--text-muted);">Heyland et al. · Específic Pacients Crítics UCI</span>
-                </div>
-                <span id="badge-nutric-quick" class="badge">--</span>
+            <div class="score-card-body">
+              <div class="score-row-info" id="row-nutric-age-info" style="font-size:12px; padding:7px 10px; background:var(--surface-alt); border-radius:6px; margin-bottom:10px; border:1px solid var(--border);">
+                <!-- Edat auto -->
               </div>
-              <div class="score-card-body">
-                <div class="score-row-info" id="row-nutric-age-info" style="font-size:12px; padding:7px 10px; background:var(--surface-alt); border-radius:6px; margin-bottom:10px; border:1px solid var(--border);">
-                  <!-- Edat auto -->
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label style="font-size:11.5px; font-weight:700;">APACHE II ingrés</label>
+                  <select id="sel-nutric-apache" class="form-control form-control-sm">
+                    <option value="0">&lt; 15 (0 pts)</option>
+                    <option value="1">15 - 19 (1 pt)</option>
+                    <option value="2">20 - 27 (2 pts)</option>
+                    <option value="3">≥ 28 (3 pts)</option>
+                  </select>
                 </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-                  <div class="form-group" style="margin-bottom:0;">
-                    <label style="font-size:11.5px; font-weight:700;">APACHE II ingrés</label>
-                    <select id="sel-nutric-apache" class="form-control form-control-sm">
-                      <option value="0">&lt; 15 (0 pts)</option>
-                      <option value="1">15 - 19 (1 pt)</option>
-                      <option value="2">20 - 27 (2 pts)</option>
-                      <option value="3">≥ 28 (3 pts)</option>
-                    </select>
-                  </div>
-                  <div class="form-group" style="margin-bottom:0;">
-                    <label style="font-size:11.5px; font-weight:700;">SOFA Score ingrés</label>
-                    <select id="sel-nutric-sofa" class="form-control form-control-sm">
-                      <option value="0">&lt; 6 (0 pts)</option>
-                      <option value="1">6 - 9 (1 pt)</option>
-                      <option value="2">≥ 10 (2 pts)</option>
-                    </select>
-                  </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label style="font-size:11.5px; font-weight:700;">SOFA Score ingrés</label>
+                  <select id="sel-nutric-sofa" class="form-control form-control-sm">
+                    <option value="0">&lt; 6 (0 pts)</option>
+                    <option value="1">6 - 9 (1 pt)</option>
+                    <option value="2">≥ 10 (2 pts)</option>
+                  </select>
                 </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
-                  <div class="form-group" style="margin-bottom:0;">
-                    <label style="font-size:11.5px; font-weight:700;">Comorbilitats</label>
-                    <select id="sel-nutric-comorb" class="form-control form-control-sm">
-                      <option value="0">0 - 1 comorbilitats (0 pts)</option>
-                      <option value="1">≥ 2 comorbilitats (1 pt)</option>
-                    </select>
-                  </div>
-                  <div class="form-group" style="margin-bottom:0;">
-                    <label style="font-size:11.5px; font-weight:700;">Dies pre-UCI</label>
-                    <select id="sel-nutric-preicu" class="form-control form-control-sm">
-                      <option value="0">&lt; 1 dia (0 pts)</option>
-                      <option value="1">≥ 1 dia a planta (1 pt)</option>
-                    </select>
-                  </div>
-                </div>
-                <div id="nutric-result-box" class="score-result-banner"></div>
               </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label style="font-size:11.5px; font-weight:700;">Comorbilitats</label>
+                  <select id="sel-nutric-comorb" class="form-control form-control-sm">
+                    <option value="0">0 - 1 comorbilitats (0 pts)</option>
+                    <option value="1">≥ 2 comorbilitats (1 pt)</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label style="font-size:11.5px; font-weight:700;">Dies pre-UCI</label>
+                  <select id="sel-nutric-preicu" class="form-control form-control-sm">
+                    <option value="0">&lt; 1 dia (0 pts)</option>
+                    <option value="1">≥ 1 dia a planta (1 pt)</option>
+                  </select>
+                </div>
+              </div>
+              <div id="nutric-result-box" class="score-result-banner"></div>
             </div>
           </div>
         </div>
 
-        <!-- ============================================================== -->
-        <!-- CRITERIS GLIM (VOLUNTARI / OPCIONAL)                          -->
-        <!-- ============================================================== -->
+        <!-- CRITERIS GLIM (VOLUNTARI / OPCIONAL) -->
         <div class="glim-card" style="margin-top:22px;">
           <div class="glim-header-bar">
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -412,26 +432,24 @@
             <div id="glim-result-box" class="score-result-banner" style="margin-top:16px;"></div>
           </div>
         </div>
-
-        <div id="step-2-validation-msg" class="alert-box alert-danger" style="display:none; margin-top:16px;"></div>
       </div>
 
       <div class="screen-footer">
-        <button type="button" class="btn btn-outline" id="btn-back-to-1">← Tornar a Dades del Malalt</button>
-        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-2">
-          Guardar Valoració i Definir Objectius del Dia (Pas 3) →
+        <button type="button" class="btn btn-outline" id="btn-back-to-2">← Tornar a Antropometria</button>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-3">
+          Guardar Escales i Definir Objectius del Dia (Pas 4) →
         </button>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 3: OBJECTIUS NUTRICIONALS DEL DIA DE VALORACIÓ             -->
+    <!-- PANTALLA 4: OBJECTIUS NUTRICIONALS DEL DIA DE VALORACIÓ             -->
     <!-- ================================================================== -->
-    <section class="app-screen" id="screen-3">
+    <section class="app-screen" id="screen-4">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pas 3 de 9 · Objectius Nutricionals Diaris</span>
-          <h2 id="screen-3-title">🎯 Objectius Nutricionals del Dia</h2>
+          <span class="screen-step-tag">Pas 4 de 10 · Objectius Nutricionals Diaris</span>
+          <h2 id="screen-4-title">🎯 Objectius Nutricionals del Dia</h2>
           <p>Revisa el Pes del Dia i el Pes de Treball, i defineix els requeriments d'energia, proteïnes i lípids per avui.</p>
         </div>
       </div>
@@ -536,27 +554,27 @@
       </div>
 
       <div class="screen-footer">
-        <button type="button" class="btn btn-outline" id="btn-back-to-2">← Tornar a Valoració d'Ingrés</button>
-        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-3">
-          Confirmar Objectius i Passar a Càlcul d'Aports (Pas 4) →
+        <button type="button" class="btn btn-outline" id="btn-back-to-3">← Tornar a Escales de Nutrició</button>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-4">
+          Confirmar Objectius i Passar a Càlcul d'Aports (Pas 5) →
         </button>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 4: PESTANYA D'APORTS CALÒRICS NO NUTRICIONALS (ml/h)       -->
+    <!-- PANTALLA 5: PESTANYA D'APORTS CALÒRICS NO NUTRICIONALS (ml/h)       -->
     <!-- ================================================================== -->
-    <section class="app-screen" id="screen-4">
+    <section class="app-screen" id="screen-5">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pas 4 de 9 · Medicació amb Aport Calòric No Nutricional</span>
+          <span class="screen-step-tag">Pas 5 de 10 · Medicació amb Aport Calòric No Nutricional</span>
           <h2>💉 Aports Calòrics No Nutricionals (Velocitat ml/h i Volum 24h)</h2>
           <p>Introdueix la velocitat d'infusió en <strong>ml/h</strong> (i les hores d'infusió al dia) o el volum total de Sèrum Glucosat, Propofol, Citrat TRRC, Clevidipino i Lactulosa.</p>
         </div>
       </div>
 
       <div class="screen-body">
-        <div class="route-context-banner" id="context-banner-screen-4"></div>
+        <div class="route-context-banner" id="context-banner-screen-5"></div>
 
         <div class="table-wrap" style="border:1px solid var(--border); border-radius:10px; overflow:hidden;">
           <table class="clinical-table">
@@ -722,36 +740,36 @@
       </div>
 
       <div class="screen-footer">
-        <button type="button" class="btn btn-outline" id="btn-back-to-3">← Tornar a Objectius del Dia</button>
-        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-4">
-          Continuar a Aports Via Oral (Pas 5) →
+        <button type="button" class="btn btn-outline" id="btn-back-to-4">← Tornar a Objectius del Dia</button>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-5">
+          Continuar a Aports Via Oral (Pas 6) →
         </button>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 5: VALORAR SI ES POT FER INGESTA ORAL (1a VIA)             -->
+    <!-- PANTALLA 6: VALORAR SI ES POT FER INGESTA ORAL (1a VIA)             -->
     <!-- ================================================================== -->
-    <section class="app-screen" id="screen-5">
+    <section class="app-screen" id="screen-6">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pas 5 de 9 · 1a Via d'Aportació Nutricional: Via Oral</span>
+          <span class="screen-step-tag">Pas 6 de 10 · 1a Via d'Aportació Nutricional: Via Oral</span>
           <h2>🍽️ Càlcul d'Aports: Ingesta per Via Oral (± Suplements)</h2>
           <p>Indica si el pacient pot alimentar-se per via oral. Si marques «No», passaràs directament a la pantalla de Nutrició Enteral.</p>
         </div>
       </div>
 
       <div class="screen-body">
-        <div class="route-context-banner" id="context-banner-screen-5"></div>
+        <div class="route-context-banner" id="context-banner-screen-6"></div>
 
         <div class="decision-gate-box">
           <h3>Es pot fer Ingesta Oral avui (dieta hospitalària i/o suplements orals)?</h3>
           <p>Valora l'estat de consciència, ventilació mecànica i seguretat de la deglució.</p>
           <div class="decision-buttons-row">
-            <button type="button" class="decision-big-btn" id="btn-screen5-oral-yes">
+            <button type="button" class="decision-big-btn" id="btn-screen6-oral-yes">
               ✅ SÍ, pot fer Ingesta Oral
             </button>
-            <button type="button" class="decision-big-btn" id="btn-screen5-oral-no">
+            <button type="button" class="decision-big-btn" id="btn-screen6-oral-no">
               ❌ NO pot fer Via Oral → Passar a Nutrició Enteral
             </button>
           </div>
@@ -808,41 +826,41 @@
       </div>
 
       <div class="screen-footer">
-        <button type="button" class="btn btn-outline" id="btn-back-to-4">← Tornar a No Nutricionals</button>
+        <button type="button" class="btn btn-outline" id="btn-back-to-5">← Tornar a No Nutricionals</button>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button type="button" class="btn btn-outline" id="btn-skip-to-monitoring-from-5">
-            🩺 Ja està cobert · Passar a Monitorització (Pas 8) →
+          <button type="button" class="btn btn-outline" id="btn-skip-to-monitoring-from-6">
+            🩺 Ja està cobert · Passar a Monitorització (Pas 9) →
           </button>
-          <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-5">
-            Continuar a Nutrició Enteral (Pas 6) →
+          <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-6">
+            Continuar a Nutrició Enteral (Pas 7) →
           </button>
         </div>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 6: VALORAR SI ES POT FER NUTRICIÓ ENTERAL (2a VIA)         -->
+    <!-- PANTALLA 7: VALORAR SI ES POT FER NUTRICIÓ ENTERAL (2a VIA)         -->
     <!-- ================================================================== -->
-    <section class="app-screen" id="screen-6">
+    <section class="app-screen" id="screen-7">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pas 6 de 9 · 2a Via d'Aportació: Nutrició Enteral (NE)</span>
+          <span class="screen-step-tag">Pas 7 de 10 · 2a Via d'Aportació: Nutrició Enteral (NE)</span>
           <h2>🍼 Càlcul d'Aports: Nutrició Enteral (NE)</h2>
           <p>Si la via oral no és possible o no arriba als requeriments i el tracte gastrointestinal és funcionant, configura la Nutrició Enteral.</p>
         </div>
       </div>
 
       <div class="screen-body">
-        <div class="route-context-banner" id="context-banner-screen-6"></div>
+        <div class="route-context-banner" id="context-banner-screen-7"></div>
 
         <div class="decision-gate-box">
           <h3>Es pot / cal administrar Nutrició Enteral per sonda avui?</h3>
           <p>Si marques «No», passaràs directament a la pantalla de Nutrició Parenteral.</p>
           <div class="decision-buttons-row">
-            <button type="button" class="decision-big-btn" id="btn-screen6-ne-yes">
+            <button type="button" class="decision-big-btn" id="btn-screen7-ne-yes">
               ✅ SÍ, pautar Nutrició Enteral (NE)
             </button>
-            <button type="button" class="decision-big-btn" id="btn-screen6-ne-no">
+            <button type="button" class="decision-big-btn" id="btn-screen7-ne-no">
               ❌ NO precisa / Contraindicada → Passar a Parenteral
             </button>
           </div>
@@ -899,41 +917,41 @@
       </div>
 
       <div class="screen-footer">
-        <button type="button" class="btn btn-outline" id="btn-back-to-5">← Tornar a Via Oral</button>
+        <button type="button" class="btn btn-outline" id="btn-back-to-6">← Tornar a Via Oral</button>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button type="button" class="btn btn-outline" id="btn-skip-to-monitoring-from-6">
-            🩺 Ja està cobert · Passar a Monitorització (Pas 8) →
+          <button type="button" class="btn btn-outline" id="btn-skip-to-monitoring-from-7">
+            🩺 Ja està cobert · Passar a Monitorització (Pas 9) →
           </button>
-          <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-6">
-            Continuar a Nutrició Parenteral (Pas 7) →
+          <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-7">
+            Continuar a Nutrició Parenteral (Pas 8) →
           </button>
         </div>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 7: VALORAR SI CAL NUTRICIÓ PARENTERAL (3a VIA)             -->
+    <!-- PANTALLA 8: VALORAR SI CAL NUTRICIÓ PARENTERAL (3a VIA)             -->
     <!-- ================================================================== -->
-    <section class="app-screen" id="screen-7">
+    <section class="app-screen" id="screen-8">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pas 7 de 9 · 3a Via d'Aportació: Nutrició Parenteral (NP)</span>
+          <span class="screen-step-tag">Pas 8 de 10 · 3a Via d'Aportació: Nutrició Parenteral (NP)</span>
           <h2>💧 Càlcul d'Aports: Nutrició Parenteral (NP)</h2>
           <p>Valora si el pacient precisa Nutrició Parenteral (per tracte GI no funcionant o per cobrir el dèficit d'Oral/Enteral).</p>
         </div>
       </div>
 
       <div class="screen-body">
-        <div class="route-context-banner" id="context-banner-screen-7"></div>
+        <div class="route-context-banner" id="context-banner-screen-8"></div>
 
         <div class="decision-gate-box">
           <h3>Cal administrar Nutrició Parenteral (NP) avui?</h3>
           <p>Si marques «No», passaràs directament a la pestanya de Monitorització Gastrointestinal i Metabòlica.</p>
           <div class="decision-buttons-row">
-            <button type="button" class="decision-big-btn" id="btn-screen7-np-yes">
+            <button type="button" class="decision-big-btn" id="btn-screen8-np-yes">
               ✅ SÍ, pautar Nutrició Parenteral (NP)
             </button>
-            <button type="button" class="decision-big-btn" id="btn-screen7-np-no">
+            <button type="button" class="decision-big-btn" id="btn-screen8-np-no">
               ❌ NO precisa NP → Passar a Monitorització GI i Metabòlica
             </button>
           </div>
@@ -1008,20 +1026,20 @@
       </div>
 
       <div class="screen-footer">
-        <button type="button" class="btn btn-outline" id="btn-back-to-6">← Tornar a Nutrició Enteral</button>
-        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-7">
-          🩺 Continuar a Monitorització GI i Metabòlica (Pas 8) →
+        <button type="button" class="btn btn-outline" id="btn-back-to-7">← Tornar a Nutrició Enteral</button>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-8">
+          🩺 Continuar a Monitorització GI i Metabòlica (Pas 9) →
         </button>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 8: MONITORITZACIÓ TOLERÀNCIA GI I METABÒLICA (SETMANAL)   -->
+    <!-- PANTALLA 9: MONITORITZACIÓ TOLERÀNCIA GI I METABÒLICA (SETMANAL)   -->
     <!-- ================================================================== -->
-    <section class="app-screen" id="screen-8">
+    <section class="app-screen" id="screen-9">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pas 8 de 9 · Monitorització de Tolerància GI i Metabòlica</span>
+          <span class="screen-step-tag">Pas 9 de 10 · Monitorització de Tolerància GI i Metabòlica</span>
           <h2>🩺 Monitorització de Tolerància Gastrointestinal i Metabòlica</h2>
           <p>Registra la tolerància GI (retencions, estrenyiment, diarrea) i els paràmetres analítics (Triglicèrids, Ferro, Vit D, Tiamina, Balanç N, Glicèmies/Insulina 7d per l'Índex de Resistència a la Insulina, i Urea/Creatinina per l'UCR).</p>
         </div>
@@ -1270,21 +1288,21 @@
       </div>
 
       <div class="screen-footer">
-        <button type="button" class="btn btn-outline" id="btn-back-to-7">← Tornar a Nutrició Parenteral</button>
-        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-8">
-          📊 Veure Balanç Final del Dia i Resum SAP (Pas 9) →
+        <button type="button" class="btn btn-outline" id="btn-back-to-8">← Tornar a Nutrició Parenteral</button>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-9">
+          📊 Veure Balanç Final del Dia i Resum SAP (Pas 10) →
         </button>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 9: BALANÇ FINAL DEL DIA I NOTA PEL CURS CLÍNIC (SAP)       -->
+    <!-- PANTALLA 10: BALANÇ FINAL DEL DIA I NOTA PEL CURS CLÍNIC (SAP)      -->
     <!-- ================================================================== -->
-    <section class="app-screen" id="screen-9">
+    <section class="app-screen" id="screen-10">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pas 9 de 9 · Balanç Final del Dia i Curs Clínic</span>
-          <h2 id="screen-9-title">📊 Balanç Final del Dia i Nota pel Curs Clínic (SAP)</h2>
+          <span class="screen-step-tag">Pas 10 de 10 · Balanç Final del Dia i Curs Clínic</span>
+          <h2 id="screen-10-title">📊 Balanç Final del Dia i Nota pel Curs Clínic (SAP)</h2>
           <p>Comprovació global d'aports vs objectius del dia, índexs metabòlics (UCR, IRI, Balanç N) i generació d'informe clínic.</p>
         </div>
       </div>
@@ -1336,7 +1354,7 @@
       </div>
 
       <div class="screen-footer no-print">
-        <button type="button" class="btn btn-outline" id="btn-back-to-8">← Tornar a Monitorització GI/Metabòlica</button>
+        <button type="button" class="btn btn-outline" id="btn-back-to-9">← Tornar a Monitorització GI/Metabòlica</button>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <button type="button" class="btn btn-lg btn-outline" id="btn-footer-next-uci">
             ➕ Nou Dia de Valoració a l'UCI (Obre Objectius Dia Següent)
