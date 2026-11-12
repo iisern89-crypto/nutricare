@@ -145,6 +145,22 @@
       admissionPhosphateMgDl: 2.8,
       diabetes: false,
       dysphagia: false,
+      // Escales de Risc Nutricional (NRS-2002 & NUTRIC)
+      nrsNutritionalScore: 0,
+      nrsDiseaseScore: 3,
+      nutricApache: 1,
+      nutricSofa: 1,
+      nutricComorbidities: 0,
+      nutricPreIcuDays: 0,
+      // Criteris GLIM (Voluntaris)
+      glimEnabled: false,
+      glimPhenoWeightLoss: "none",
+      glimPhenoBmi: "none",
+      glimPhenoMuscle: "none",
+      glimEtioIntake: false,
+      glimEtioGastro: false,
+      glimEtioAcuteInflammation: true,
+      glimEtioChronicInflammation: false,
       patientInfoCompleted: false,
       admissionCompleted: false,
       activeDayIndex: 0,
@@ -169,6 +185,22 @@
       admissionPhosphateMgDl: 2.8,
       diabetes: true,
       dysphagia: false,
+      // Escales de Risc Nutricional Demo
+      nrsNutritionalScore: 1,
+      nrsDiseaseScore: 3,
+      nutricApache: 1,
+      nutricSofa: 1,
+      nutricComorbidities: 1,
+      nutricPreIcuDays: 0,
+      // GLIM Demo
+      glimEnabled: true,
+      glimPhenoWeightLoss: "severe",
+      glimPhenoBmi: "none",
+      glimPhenoMuscle: "moderate",
+      glimEtioIntake: true,
+      glimEtioGastro: false,
+      glimEtioAcuteInflammation: true,
+      glimEtioChronicInflammation: false,
       patientInfoCompleted: true,
       admissionCompleted: true,
       activeDayIndex: 0,
@@ -549,6 +581,94 @@
     const phos = Number(patient.admissionPhosphateMgDl) || 2.8;
     const refeedingRisk = bmi < 18.5 || weightLossPct > 10 || phos < 2.0;
 
+    // =========================================================================
+    // ESCALES DE RISC NUTRICIONAL: NRS-2002 I NUTRIC SCORE
+    // =========================================================================
+    const patAge = Number(patient.age) || 0;
+
+    // 1. NRS-2002 (ESPEN 2002 - Kondrup et al.)
+    const nrsNutritionalScore = Number(patient.nrsNutritionalScore) || 0;
+    const nrsDiseaseScore = Number(patient.nrsDiseaseScore) || (day.location === "UCI" ? 3 : 1);
+    const nrsAgeScore = patAge >= 70 ? 1 : 0;
+    const nrsTotal = nrsNutritionalScore + nrsDiseaseScore + nrsAgeScore;
+    const nrsIsHighRisk = nrsTotal >= 3;
+    const nrs2002 = {
+      nutritionalScore: nrsNutritionalScore,
+      diseaseScore: nrsDiseaseScore,
+      ageScore: nrsAgeScore,
+      total: nrsTotal,
+      isHighRisk: nrsIsHighRisk,
+      riskLabel: nrsIsHighRisk ? "Risc Nutricional Alt" : "Risc Nutricional Baix"
+    };
+
+    // 2. NUTRIC SCORE (mNUTRIC sense IL-6 - Heyland et al.)
+    let nutricAgePoints = 0;
+    if (patAge >= 75) nutricAgePoints = 2;
+    else if (patAge >= 50) nutricAgePoints = 1;
+
+    const nutricApache = Number(patient.nutricApache) || 0;
+    const nutricSofa = Number(patient.nutricSofa) || 0;
+    const nutricComorbidities = Number(patient.nutricComorbidities) || 0;
+    const nutricPreIcuDays = Number(patient.nutricPreIcuDays) || 0;
+    const nutricTotal = nutricAgePoints + nutricApache + nutricSofa + nutricComorbidities + nutricPreIcuDays;
+    const nutricIsHighRisk = nutricTotal >= 5;
+    const nutricScore = {
+      agePoints: nutricAgePoints,
+      apachePoints: nutricApache,
+      sofaPoints: nutricSofa,
+      comorbPoints: nutricComorbidities,
+      preIcuPoints: nutricPreIcuDays,
+      total: nutricTotal,
+      isHighRisk: nutricIsHighRisk,
+      riskLabel: nutricIsHighRisk ? "Risc Nutricional Alt (≥ 5)" : "Risc Nutricional Baix (0-4)"
+    };
+
+    // 3. CRITERIS GLIM (Global Leadership Initiative on Malnutrition)
+    const glimEnabled = Boolean(patient.glimEnabled);
+    const glimPhenoWeight = patient.glimPhenoWeightLoss || "none";
+    const glimPhenoBmi = patient.glimPhenoBmi || "none";
+    const glimPhenoMuscle = patient.glimPhenoMuscle || "none";
+    const glimHasPheno = glimPhenoWeight !== "none" || glimPhenoBmi !== "none" || glimPhenoMuscle !== "none";
+    const glimIsSeverePheno = glimPhenoWeight === "severe" || glimPhenoBmi === "severe" || glimPhenoMuscle === "severe";
+
+    const glimEtioIntake = Boolean(patient.glimEtioIntake);
+    const glimEtioGastro = Boolean(patient.glimEtioGastro);
+    const glimEtioAcute = Boolean(patient.glimEtioAcuteInflammation);
+    const glimEtioChronic = Boolean(patient.glimEtioChronicInflammation);
+    const glimHasEtio = glimEtioIntake || glimEtioGastro || glimEtioAcute || glimEtioChronic;
+
+    let glimDiagnosis = "not_evaluated";
+    let glimDiagnosisLabel = "No avaluat (opcional)";
+    let glimBadgeClass = "badge-info";
+
+    if (glimEnabled) {
+      if (glimHasPheno && glimHasEtio) {
+        if (glimIsSeverePheno) {
+          glimDiagnosis = "severe";
+          glimDiagnosisLabel = "Desnutrició GLIM Estadi 2 (Greu)";
+          glimBadgeClass = "badge-danger";
+        } else {
+          glimDiagnosis = "moderate";
+          glimDiagnosisLabel = "Desnutrició GLIM Estadi 1 (Moderada)";
+          glimBadgeClass = "badge-warning";
+        }
+      } else {
+        glimDiagnosis = "no_malnutrition";
+        glimDiagnosisLabel = "No compleix criteris de desnutrició GLIM";
+        glimBadgeClass = "badge-success";
+      }
+    }
+
+    const glim = {
+      glimEnabled,
+      hasPheno: glimHasPheno,
+      hasEtio: glimHasEtio,
+      isSeverePheno: glimIsSeverePheno,
+      diagnosis: glimDiagnosis,
+      diagnosisLabel: glimDiagnosisLabel,
+      badgeClass: glimBadgeClass
+    };
+
     return {
       anthropometry: {
         heightCm,
@@ -603,7 +723,10 @@
       iri,
       weekly,
       refeedingRisk,
-      phosphateMgDl: phos
+      phosphateMgDl: phos,
+      nrs2002,
+      nutricScore,
+      glim
     };
   }
 
@@ -703,7 +826,7 @@
         admBanner.style.display = "block";
         admBanner.innerHTML = `
           <div class="saved-admission-pill">
-            <span>✅ <strong>Ingrés guardat:</strong> ${patient.sex === "M" ? "Home" : "Dona"}, ${patient.age}a · ${patient.heightCm} cm · Pes Treball: <strong>${fmt(m.anthropometry.workWeight, 1)} kg</strong> (IMC ${fmt(m.anthropometry.bmi, 1)})</span>
+            <span>✅ <strong>Ingrés guardat:</strong> ${patient.sex === "M" ? "Home" : "Dona"}, ${patient.age}a · ${patient.heightCm} cm · Pes Treball: <strong>${fmt(m.anthropometry.workWeight, 1)} kg</strong> (IMC ${fmt(m.anthropometry.bmi, 1)}) · <strong>NRS: ${m.nrs2002.total}/7</strong> · <strong>NUTRIC: ${m.nutricScore.total}/9</strong>${m.glim.glimEnabled ? ` · <strong>GLIM:</strong> ${m.glim.diagnosisLabel}` : ""}</span>
             <button type="button" class="btn btn-sm btn-outline" id="btn-edit-admission-top" style="padding:2px 8px; font-size:11px;">✏️ Editar</button>
           </div>
         `;
@@ -940,6 +1063,121 @@
       } else {
         riskBox.innerHTML = "";
       }
+    }
+
+    // --- 1. RENDER NRS-2002 ---
+    setVal("sel-nrs-nutritional", patient.nrsNutritionalScore ?? 0);
+    setVal("sel-nrs-disease", patient.nrsDiseaseScore ?? (day.location === "UCI" ? 3 : 1));
+    const nrsAgeEl = document.getElementById("row-nrs-age-info");
+    if (nrsAgeEl) {
+      nrsAgeEl.innerHTML = (patient.age >= 70)
+        ? `Edat: <strong>${patient.age} anys</strong> → <strong>+1 punt</strong> afegit automàticament (Criteri edat ≥ 70 anys)`
+        : `Edat: <strong>${patient.age || 0} anys</strong> → <strong>+0 punts</strong> (Criteri edat &lt; 70 anys)`;
+    }
+
+    const nrsBox = document.getElementById("nrs-result-box");
+    if (nrsBox) {
+      nrsBox.className = `score-result-banner ${m.nrs2002.isHighRisk ? "high-risk" : "low-risk"}`;
+      nrsBox.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+          <div><strong>PUNTUACIÓ NRS-2002: ${m.nrs2002.total} / 7</strong></div>
+          <span class="badge ${m.nrs2002.isHighRisk ? "badge-danger" : "badge-success"}">${m.nrs2002.isHighRisk ? "RISC NUTRICIONAL ALT (≥ 3)" : "Risc Nutricional Baix (&lt; 3)"}</span>
+        </div>
+        <div style="font-size:12px; margin-top:4px;">
+          ${m.nrs2002.isHighRisk
+            ? "⚠️ <strong>Pacient en risc nutricional (Score ≥ 3).</strong> Cal iniciar pla de suport nutricional precoç i monitorització estreta."
+            : "ℹ️ <strong>Sense risc nutricional inicial (&lt; 3).</strong> Reavaluar setmanalment o davant de canvis en l'estat clínic."}
+        </div>
+      `;
+    }
+    const nrsBadgeQuick = document.getElementById("badge-nrs-quick");
+    if (nrsBadgeQuick) {
+      nrsBadgeQuick.className = `badge ${m.nrs2002.isHighRisk ? "badge-danger" : "badge-success"}`;
+      nrsBadgeQuick.textContent = `${m.nrs2002.total}/7 · ${m.nrs2002.isHighRisk ? "Risc Alt" : "Risc Baix"}`;
+    }
+
+    // --- 2. RENDER NUTRIC SCORE ---
+    const nutricAgeEl = document.getElementById("row-nutric-age-info");
+    if (nutricAgeEl) {
+      const pAge = Number(patient.age) || 0;
+      nutricAgeEl.innerHTML = `Edat pacient: <strong>${pAge} anys</strong> → <strong>+${m.nutricScore.agePoints} punts</strong> (${pAge >= 75 ? "≥ 75 anys [2p]" : pAge >= 50 ? "50-74 anys [1p]" : "< 50 anys [0p]"})`;
+    }
+    setVal("sel-nutric-apache", patient.nutricApache ?? 1);
+    setVal("sel-nutric-sofa", patient.nutricSofa ?? 1);
+    setVal("sel-nutric-comorb", patient.nutricComorbidities ?? (patient.diabetes ? 1 : 0));
+    setVal("sel-nutric-preicu", patient.nutricPreIcuDays ?? 0);
+
+    const nutricBox = document.getElementById("nutric-result-box");
+    if (nutricBox) {
+      nutricBox.className = `score-result-banner ${m.nutricScore.isHighRisk ? "high-risk" : "low-risk"}`;
+      nutricBox.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+          <div><strong>PUNTUACIÓ mNUTRIC: ${m.nutricScore.total} / 9</strong></div>
+          <span class="badge ${m.nutricScore.isHighRisk ? "badge-danger" : "badge-success"}">${m.nutricScore.isHighRisk ? "RISC NUTRICIONAL ALT (≥ 5)" : "Risc Baix (0 - 4)"}</span>
+        </div>
+        <div style="font-size:12px; margin-top:4px;">
+          ${m.nutricScore.isHighRisk
+            ? "⚠️ <strong>Pacient crític amb alt risc nutricional (≥ 5).</strong> Associat a pitjor evolució i mortalitat si no s'assoleixen els requeriments; es beneficia de suport nutricional intensiu."
+            : "ℹ️ <strong>Risc nutricional baix a UCI (0-4).</strong> La pauta tròfica o progressiva és segura; menor risc de complicacions per dèficit calòric precoç."}
+        </div>
+      `;
+    }
+    const nutricBadgeQuick = document.getElementById("badge-nutric-quick");
+    if (nutricBadgeQuick) {
+      nutricBadgeQuick.className = `badge ${m.nutricScore.isHighRisk ? "badge-danger" : "badge-success"}`;
+      nutricBadgeQuick.textContent = `${m.nutricScore.total}/9 · ${m.nutricScore.isHighRisk ? "Risc Alt" : "Risc Baix"}`;
+    }
+
+    // --- 3. RENDER CRITERIS GLIM (VOLUNTARIS) ---
+    const chkGlim = document.getElementById("chk-enable-glim");
+    if (chkGlim) chkGlim.checked = Boolean(patient.glimEnabled);
+
+    const glimWrapper = document.getElementById("glim-body-wrapper");
+    if (glimWrapper) glimWrapper.style.display = patient.glimEnabled ? "block" : "none";
+
+    const hintWeight = document.getElementById("hint-glim-weight");
+    if (hintWeight) {
+      hintWeight.textContent = m.anthropometry.weightLossPct > 0
+        ? `💡 Dada pacient: Pèrdua ${fmt(m.anthropometry.weightLossPct, 1)}% (${fmt(-m.anthropometry.weightChangeKg, 1)} kg)`
+        : "💡 Dada pacient: Sense pèrdua de pes constatada";
+    }
+
+    const hintBmi = document.getElementById("hint-glim-bmi");
+    if (hintBmi) {
+      hintBmi.textContent = `💡 Dada pacient: IMC ${fmt(m.anthropometry.bmi, 1)} kg/m² (${patient.age || 0} anys)`;
+    }
+
+    setVal("sel-glim-pheno-weight", patient.glimPhenoWeightLoss || "none");
+    setVal("sel-glim-pheno-bmi", patient.glimPhenoBmi || "none");
+    setVal("sel-glim-pheno-muscle", patient.glimPhenoMuscle || "none");
+
+    const setChecked = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = Boolean(val);
+    };
+    setChecked("chk-glim-etio-intake", patient.glimEtioIntake);
+    setChecked("chk-glim-etio-gastro", patient.glimEtioGastro);
+    setChecked("chk-glim-etio-acute", patient.glimEtioAcuteInflammation);
+    setChecked("chk-glim-etio-chronic", patient.glimEtioChronicInflammation);
+
+    const glimBox = document.getElementById("glim-result-box");
+    if (glimBox) {
+      glimBox.className = `score-result-banner ${m.glim.badgeClass === "badge-danger" ? "high-risk" : m.glim.badgeClass === "badge-warning" ? "moderate-risk" : "low-risk"}`;
+      glimBox.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+          <div><strong>DIAGNÒSTIC GLIM: ${m.glim.diagnosisLabel}</strong></div>
+          <span class="badge ${m.glim.badgeClass}">
+            ${m.glim.diagnosis === "severe" ? "Estadi 2 (Greu)" : m.glim.diagnosis === "moderate" ? "Estadi 1 (Moderada)" : "No diagnòstic"}
+          </span>
+        </div>
+        <div style="font-size:12px; margin-top:4px;">
+          ${m.glim.diagnosis === "severe"
+            ? "🔴 <strong>Compleix criteris GLIM de Desnutrició Greu (Estadi 2):</strong> Requereix almenys 1 fenotípic sever + 1 etiològic. Pauta nutricional especialitzada i seguiment prioritari."
+            : m.glim.diagnosis === "moderate"
+            ? "🟡 <strong>Compleix criteris GLIM de Desnutrició Moderada (Estadi 1):</strong> Compleix almenys 1 criteri fenotípic moderat + 1 criteri etiològic."
+            : "ℹ️ <strong>Criteris GLIM incomplets:</strong> Cal complir com a mínim 1 criteri fenotípic I 1 criteri etiològic per establir el diagnòstic formal de desnutrició."}
+        </div>
+      `;
     }
   }
 
@@ -1681,6 +1919,7 @@
       const labs = buildLabAlerts(day).filter((a) => a.lvl === "danger" || a.lvl === "warning");
       sumBox.innerHTML = `
         <div style="margin-bottom:6px;"><strong>Pes del dia / Pes de treball:</strong> ${fmt(m.anthropometry.actualWeight, 1)} / ${fmt(m.anthropometry.workWeight, 1)} kg</div>
+        <div style="margin-bottom:6px;"><strong>Cribratge Ingrés:</strong> NRS-2002: <span class="badge ${m.nrs2002.isHighRisk ? "badge-danger" : "badge-success"}">${m.nrs2002.total}/7 (${m.nrs2002.isHighRisk ? "Risc Alt" : "Risc Baix"})</span> · mNUTRIC: <span class="badge ${m.nutricScore.isHighRisk ? "badge-danger" : "badge-success"}">${m.nutricScore.total}/9 (${m.nutricScore.isHighRisk ? "Risc Alt" : "Risc Baix"})</span>${m.glim.glimEnabled ? ` · GLIM: <span class="badge ${m.glim.badgeClass}">${m.glim.diagnosisLabel}</span>` : ""}</div>
         <div style="margin-bottom:6px;"><strong>Balanç nitrogenat:</strong> ${m.nitrogen.hasUrea24h ? `${fmt(m.nitrogen.balance, 1)} g/24h <span class="badge ${m.nitrogen.badgeClass}">${m.nitrogen.status}</span>` : "No registrat"}</div>
         <div style="margin-bottom:6px;"><strong>UCR:</strong> ${m.ucr ? `${fmt(m.ucr.ucrSI, 0)} (BUN/Cr ${fmt(m.ucr.bunCr, 1)})` : "No registrat"}</div>
         <div style="margin-bottom:6px;"><strong>Resistència insulina:</strong> ${m.iri ? `${fmt(m.iri.totalInsulin, 0)} UI/24h · ${m.iri.perGCarbs !== null ? fmt(m.iri.perGCarbs, 2) + " UI/g HC" : "-"} · ${m.iri.perKg !== null ? fmt(m.iri.perKg, 2) + " UI/kg" : "-"}` : "No registrat"}${m.weekly.insulinTrendPct !== null ? ` · Tendència 7d ${m.weekly.insulinTrendPct > 0 ? "+" : ""}${fmt(m.weekly.insulinTrendPct, 0)}%` : ""}</div>
@@ -1707,6 +1946,11 @@
           ? `Guany: +${fmt(m.anthropometry.weightGainPct, 1)}%, sense pèrdua de pes`
           : "sense pèrdua de pes"
       }) | IMC: ${fmt(m.anthropometry.bmi, 1)} kg/m²`
+    );
+    lines.push(
+      `Cribratge Ingrés: NRS-2002: ${m.nrs2002.total}/7 (${m.nrs2002.isHighRisk ? "RISC ALT" : "Risc Baix"}) | NUTRIC Score: ${m.nutricScore.total}/9 (${m.nutricScore.isHighRisk ? "RISC ALT" : "Risc Baix"})${
+        m.glim.glimEnabled ? ` | GLIM: ${m.glim.diagnosisLabel}` : ""
+      }`
     );
     lines.push(
       `Pes del dia: ${fmt(m.anthropometry.actualWeight, 1)} kg | Pes Ideal: ${fmt(m.anthropometry.idealWeight, 1)} kg | PES DE TREBALL: ${fmt(m.anthropometry.workWeight, 1)} kg ${m.anthropometry.isObeseAdjusted ? "(Pes Ajustat per IMC>30)" : "(Pes Actual)"}`
@@ -2123,6 +2367,20 @@
       p.admissionPhosphateMgDl = 2.8;
       p.diabetes = true;
       p.dysphagia = false;
+      p.nrsNutritionalScore = 1;
+      p.nrsDiseaseScore = 3;
+      p.nutricApache = 1;
+      p.nutricSofa = 1;
+      p.nutricComorbidities = 1;
+      p.nutricPreIcuDays = 0;
+      p.glimEnabled = true;
+      p.glimPhenoWeightLoss = "severe";
+      p.glimPhenoBmi = "none";
+      p.glimPhenoMuscle = "moderate";
+      p.glimEtioIntake = true;
+      p.glimEtioGastro = false;
+      p.glimEtioAcuteInflammation = true;
+      p.glimEtioChronicInflammation = false;
       p.patientInfoCompleted = true;
       p.admissionCompleted = true;
       d.location = "UCI";
@@ -2145,6 +2403,20 @@
       p.admissionPhosphateMgDl = 2.8;
       p.diabetes = false;
       p.dysphagia = false;
+      p.nrsNutritionalScore = 0;
+      p.nrsDiseaseScore = 3;
+      p.nutricApache = 1;
+      p.nutricSofa = 1;
+      p.nutricComorbidities = 0;
+      p.nutricPreIcuDays = 0;
+      p.glimEnabled = false;
+      p.glimPhenoWeightLoss = "none";
+      p.glimPhenoBmi = "none";
+      p.glimPhenoMuscle = "none";
+      p.glimEtioIntake = false;
+      p.glimEtioGastro = false;
+      p.glimEtioAcuteInflammation = true;
+      p.glimEtioChronicInflammation = false;
       p.patientInfoCompleted = false;
       p.admissionCompleted = false;
       d.currentScreen = 1;
@@ -2175,6 +2447,48 @@
     bindPatientInput("inp-admission-weight", "admissionWeightKg", true);
     bindPatientInput("inp-habitual-weight", "habitualWeightKg", true);
     bindPatientInput("inp-phosphate", "admissionPhosphateMgDl", true);
+
+    // Inputs Escales de Risc Nutricional (NRS-2002 & NUTRIC Score)
+    const bindPatientProp = (id, prop, isNum = false) => {
+      document.getElementById(id)?.addEventListener("change", (e) => {
+        const p = getActivePatient();
+        p[prop] = isNum ? Number(e.target.value) : e.target.value;
+        saveState();
+        renderAll();
+      });
+    };
+
+    bindPatientProp("sel-nrs-nutritional", "nrsNutritionalScore", true);
+    bindPatientProp("sel-nrs-disease", "nrsDiseaseScore", true);
+    bindPatientProp("sel-nutric-apache", "nutricApache", true);
+    bindPatientProp("sel-nutric-sofa", "nutricSofa", true);
+    bindPatientProp("sel-nutric-comorb", "nutricComorbidities", true);
+    bindPatientProp("sel-nutric-preicu", "nutricPreIcuDays", true);
+
+    // Inputs Criteris GLIM (Voluntaris)
+    document.getElementById("chk-enable-glim")?.addEventListener("change", (e) => {
+      const p = getActivePatient();
+      p.glimEnabled = e.target.checked;
+      saveState();
+      renderAll();
+    });
+
+    bindPatientProp("sel-glim-pheno-weight", "glimPhenoWeightLoss", false);
+    bindPatientProp("sel-glim-pheno-bmi", "glimPhenoBmi", false);
+    bindPatientProp("sel-glim-pheno-muscle", "glimPhenoMuscle", false);
+
+    const bindGlimCheck = (id, prop) => {
+      document.getElementById(id)?.addEventListener("change", (e) => {
+        const p = getActivePatient();
+        p[prop] = e.target.checked;
+        saveState();
+        renderAll();
+      });
+    };
+    bindGlimCheck("chk-glim-etio-intake", "glimEtioIntake");
+    bindGlimCheck("chk-glim-etio-gastro", "glimEtioGastro");
+    bindGlimCheck("chk-glim-etio-acute", "glimEtioAcuteInflammation");
+    bindGlimCheck("chk-glim-etio-chronic", "glimEtioChronicInflammation");
 
     // TRANSICIÓ PANTALLA 2 -> PANTALLA 3 (Valoració ingrés -> Objectius del dia)
     document.getElementById("btn-back-to-1")?.addEventListener("click", () => goToScreen(1));
