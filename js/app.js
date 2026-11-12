@@ -20,7 +20,7 @@
       phaseLabel: phaseLabel || `Dia ${dayNumber} ${location}`,
       actualWeightKg: weightKg || 75,
       // Estat de les pantalles d'aquest dia
-      currentScreen: 3, // Quan la valoració d'ingrés ja està guardada, cada dia s'obre a la Pantalla 3 (Objectius)
+      currentScreen: 4, // Quan la valoració d'ingrés ja està guardada, cada dia s'obre a la Pantalla 4 (Objectius)
       objectivesCompleted: false,
       oralEvaluated: false,
       neEvaluated: false,
@@ -281,17 +281,17 @@
       renderAll();
       return;
     }
-    // 2. Si no s'ha completat la valoració a l'ingrés, només es pot estar a les Pantalles 1 o 2
-    if (!p.admissionCompleted && screenNum > 2) {
-      alert("Primer has de guardar la Valoració Nutricional a l'Ingrés (Pantalla 2).");
+    // 2. Si no s'ha completat la valoració a l'ingrés, només es pot estar a les Pantalles 1, 2 o 3
+    if (!p.admissionCompleted && screenNum > 3) {
+      alert("Primer has de completar l'Antropometria a l'Ingrés (Pantalla 2).");
       d.currentScreen = 2;
       renderAll();
       return;
     }
-    // 3. Si no s'han confirmat els objectius del dia actual, no es pot passar a les pantalles d'aports (4 a 9)
-    if (!d.objectivesCompleted && screenNum > 3) {
-      alert("Primer has de confirmar els Objectius Nutricionals per a aquest dia de valoració (Pantalla 3).");
-      d.currentScreen = 3;
+    // 3. Si no s'han confirmat els objectius del dia actual, no es pot passar a les pantalles d'aports (5 a 10)
+    if (!d.objectivesCompleted && screenNum > 4) {
+      alert("Primer has de confirmar els Objectius Nutricionals per a aquest dia de valoració (Pantalla 4).");
+      d.currentScreen = 4;
       renderAll();
       return;
     }
@@ -779,31 +779,32 @@
     if (!pBasic) {
       day.currentScreen = 1;
     } else if (!patient.admissionCompleted) {
-      if (day.currentScreen > 2) day.currentScreen = 2;
-    } else if (!day.objectivesCompleted && day.currentScreen > 3) {
-      day.currentScreen = 3;
-    } else if (!day.currentScreen || day.currentScreen < 1 || day.currentScreen > 9) {
-      day.currentScreen = 3;
+      if (day.currentScreen > 3) day.currentScreen = 2;
+    } else if (!day.objectivesCompleted && day.currentScreen > 4) {
+      day.currentScreen = 4;
+    } else if (!day.currentScreen || day.currentScreen < 1 || day.currentScreen > 10) {
+      day.currentScreen = 4;
     }
 
     renderTopContextBar(patient, day, m);
     renderScreenStepper(patient, day, m);
 
-    // Mostrar només la pantalla actual (screen-1 .. screen-9)
-    for (let i = 1; i <= 9; i++) {
+    // Mostrar només la pantalla actual (screen-1 .. screen-10)
+    for (let i = 1; i <= 10; i++) {
       const el = document.getElementById(`screen-${i}`);
       if (el) el.classList.toggle("active-screen", day.currentScreen === i);
     }
 
     if (day.currentScreen === 1) renderScreen1Patient(patient, day, m);
     else if (day.currentScreen === 2) renderScreen2Admission(patient, day, m);
-    else if (day.currentScreen === 3) renderScreen3Objectives(patient, day, m);
-    else if (day.currentScreen === 4) renderScreen4NonNutr(patient, day, m);
-    else if (day.currentScreen === 5) renderScreen5Oral(patient, day, m);
-    else if (day.currentScreen === 6) renderScreen6NE(patient, day, m);
-    else if (day.currentScreen === 7) renderScreen7NP(patient, day, m);
-    else if (day.currentScreen === 8) renderScreen8Monitoring(patient, day, m);
-    else if (day.currentScreen === 9) renderScreen9Balance(patient, day, m);
+    else if (day.currentScreen === 3) renderScreen3Scales(patient, day, m);
+    else if (day.currentScreen === 4) renderScreen4Objectives(patient, day, m);
+    else if (day.currentScreen === 5) renderScreen5NonNutr(patient, day, m);
+    else if (day.currentScreen === 6) renderScreen6Oral(patient, day, m);
+    else if (day.currentScreen === 7) renderScreen7NE(patient, day, m);
+    else if (day.currentScreen === 8) renderScreen8NP(patient, day, m);
+    else if (day.currentScreen === 9) renderScreen9Monitoring(patient, day, m);
+    else if (day.currentScreen === 10) renderScreen10Balance(patient, day, m);
 
     renderModals(patient, day);
   }
@@ -862,7 +863,7 @@
         btn.addEventListener("click", () => {
           patient.activeDayIndex = Number(btn.getAttribute("data-day-idx"));
           const targetDay = getActiveDay(patient);
-          if (!targetDay.objectivesCompleted) targetDay.currentScreen = 3;
+          if (!targetDay.objectivesCompleted) targetDay.currentScreen = 4;
           saveState();
           renderAll();
         });
@@ -876,7 +877,8 @@
 
     const s1Done = Boolean(patient.name && patient.sex && (patient.age > 0));
     const s2Done = s1Done && Boolean(patient.admissionCompleted);
-    const s3Done = s2Done && Boolean(day.objectivesCompleted);
+    const s3Done = s2Done;
+    const s4Done = s2Done && Boolean(day.objectivesCompleted);
 
     const crumbs = [
       {
@@ -888,59 +890,66 @@
       },
       {
         num: 2,
-        label: "2. Ingrés",
-        sub: s2Done ? `${fmt(m.anthropometry.workWeight, 1)} kg` : "Antropometria",
+        label: "2. Antropometria",
+        sub: s2Done ? `${fmt(m.anthropometry.workWeight, 1)} kg` : "Talla/Pes",
         unlocked: s1Done,
         done: s2Done
       },
       {
         num: 3,
-        label: `3. Objectius D${day.dayNumber}`,
-        sub: s3Done ? `${fmt(m.targets.energyKcal, 0)} kcal` : "Obligatori",
+        label: "3. Escales Nutrició",
+        sub: s2Done ? `NRS ${m.nrs2002.total} · NUTRIC ${m.nutricScore.total}` : "Cribratge",
         unlocked: s2Done,
-        done: s3Done
+        done: s2Done
       },
       {
         num: 4,
-        label: "4. No Nutricionals",
-        sub: m.nonNutr.kcal > 0 ? `${fmt(m.nonNutr.kcal, 0)} kcal` : "0 kcal",
-        unlocked: s3Done,
-        done: s3Done && (day.nonNutrEvaluated || m.nonNutr.kcal > 0)
+        label: `4. Objectius D${day.dayNumber}`,
+        sub: s4Done ? `${fmt(m.targets.energyKcal, 0)} kcal` : "Obligatori",
+        unlocked: s2Done,
+        done: s4Done
       },
       {
         num: 5,
-        label: "5. Via Oral",
-        sub: day.oralActive ? `SÍ (${fmt(m.oralTray.kcal + m.supplements.kcal, 0)} kcal)` : day.oralEvaluated ? "NO" : "Valorar",
-        unlocked: s3Done,
-        done: day.oralEvaluated || day.oralActive
+        label: "5. No Nutricionals",
+        sub: m.nonNutr.kcal > 0 ? `${fmt(m.nonNutr.kcal, 0)} kcal` : "0 kcal",
+        unlocked: s4Done,
+        done: s4Done && (day.nonNutrEvaluated || m.nonNutr.kcal > 0)
       },
       {
         num: 6,
-        label: "6. Via Enteral",
-        sub: day.neActive ? `SÍ (${fmt(m.ne.kcal, 0)} kcal)` : day.neEvaluated ? "NO" : "Valorar",
-        unlocked: s3Done,
-        done: day.neEvaluated || day.neActive
+        label: "6. Via Oral",
+        sub: day.oralActive ? `SÍ (${fmt(m.oralTray.kcal + m.supplements.kcal, 0)} kcal)` : day.oralEvaluated ? "NO" : "Valorar",
+        unlocked: s4Done,
+        done: day.oralEvaluated || day.oralActive
       },
       {
         num: 7,
-        label: "7. Via Parenteral",
-        sub: day.npActive ? `SÍ (${fmt(m.np.kcal, 0)} kcal)` : day.npEvaluated ? "NO" : "Valorar",
-        unlocked: s3Done,
-        done: day.npEvaluated || day.npActive
+        label: "7. Via Enteral",
+        sub: day.neActive ? `SÍ (${fmt(m.ne.kcal, 0)} kcal)` : day.neEvaluated ? "NO" : "Valorar",
+        unlocked: s4Done,
+        done: day.neEvaluated || day.neActive
       },
       {
         num: 8,
-        label: "8. Monitorització",
-        sub: "GI · Metabòlica",
-        unlocked: s3Done,
-        done: Boolean(day.monitoringVisited)
+        label: "8. Via Parenteral",
+        sub: day.npActive ? `SÍ (${fmt(m.np.kcal, 0)} kcal)` : day.npEvaluated ? "NO" : "Valorar",
+        unlocked: s4Done,
+        done: day.npEvaluated || day.npActive
       },
       {
         num: 9,
-        label: "9. Balanç i SAP",
-        sub: s3Done ? `${fmt(m.totals.kcalAdequacyPct, 0)}% Kcal` : "Resum",
-        unlocked: s3Done,
-        done: day.currentScreen === 9
+        label: "9. Monitorització",
+        sub: "GI · Metabòlica",
+        unlocked: s4Done,
+        done: Boolean(day.monitoringVisited)
+      },
+      {
+        num: 10,
+        label: "10. Balanç i SAP",
+        sub: s4Done ? `${fmt(m.totals.kcalAdequacyPct, 0)}% Kcal` : "Resum",
+        unlocked: s4Done,
+        done: day.currentScreen === 10
       }
     ];
 
@@ -1064,7 +1073,12 @@
         riskBox.innerHTML = "";
       }
     }
+  }
 
+  // =========================================================================
+  // PANTALLA 3: ESCALES DE RISC NUTRICIONAL I GLIM
+  // =========================================================================
+  function renderScreen3Scales(patient, day, m) {
     // --- 1. RENDER NRS-2002 ---
     setVal("sel-nrs-nutritional", patient.nrsNutritionalScore ?? 0);
     setVal("sel-nrs-disease", patient.nrsDiseaseScore ?? (day.location === "UCI" ? 3 : 1));
@@ -1182,10 +1196,10 @@
   }
 
   // =========================================================================
-  // PANTALLA 3: OBJECTIUS NUTRICIONALS DEL DIA
+  // PANTALLA 4: OBJECTIUS NUTRICIONALS DEL DIA
   // =========================================================================
-  function renderScreen3Objectives(patient, day, m) {
-    const titleEl = document.getElementById("screen-3-title");
+  function renderScreen4Objectives(patient, day, m) {
+    const titleEl = document.getElementById("screen-4-title");
     if (titleEl) titleEl.textContent = `🎯 Objectius Nutricionals · Dia ${day.dayNumber} (${day.location})`;
 
     setVal("inp-day-location", day.location);
@@ -1253,8 +1267,9 @@
     { key: "clevidipine", rate: "clevidipineRateMlH", hours: "clevidipineHours", vol: "clevidipineVolumeMl" }
   ];
 
-  function renderScreen4NonNutr(patient, day, m) {
-    document.getElementById("context-banner-screen-4").innerHTML = buildContextBannerHtml(day, m);
+  function renderScreen5NonNutr(patient, day, m) {
+    const cb = document.getElementById("context-banner-screen-5");
+    if (cb) cb.innerHTML = buildContextBannerHtml(day, m);
 
     setVal("inp-sg-conc", String(day.sgConcentration));
     setVal("inp-propofol-conc", String(day.propofolConcentration || 0.1));
@@ -1291,13 +1306,14 @@
   }
 
   // =========================================================================
-  // PANTALLA 5: VALORACIÓ D'INGESTA ORAL (1a VIA)
+  // PANTALLA 6: VALORACIÓ D'INGESTA ORAL (1a VIA)
   // =========================================================================
-  function renderScreen5Oral(patient, day, m) {
-    document.getElementById("context-banner-screen-5").innerHTML = buildContextBannerHtml(day, m);
+  function renderScreen6Oral(patient, day, m) {
+    const cb = document.getElementById("context-banner-screen-6");
+    if (cb) cb.innerHTML = buildContextBannerHtml(day, m);
 
-    document.getElementById("btn-screen5-oral-yes")?.classList.toggle("selected-yes", Boolean(day.oralActive));
-    document.getElementById("btn-screen5-oral-no")?.classList.toggle("selected-no", !day.oralActive && day.oralEvaluated);
+    document.getElementById("btn-screen6-oral-yes")?.classList.toggle("selected-yes", Boolean(day.oralActive));
+    document.getElementById("btn-screen6-oral-no")?.classList.toggle("selected-no", !day.oralActive && day.oralEvaluated);
 
     const panel = document.getElementById("oral-config-panel");
     panel.style.display = day.oralActive ? "block" : "none";
@@ -1475,13 +1491,14 @@
   }
 
   // =========================================================================
-  // PANTALLA 6: VALORACIÓ DE NUTRICIÓ ENTERAL (2a VIA)
+  // PANTALLA 7: VALORACIÓ DE NUTRICIÓ ENTERAL (2a VIA)
   // =========================================================================
-  function renderScreen6NE(patient, day, m) {
-    document.getElementById("context-banner-screen-6").innerHTML = buildContextBannerHtml(day, m);
+  function renderScreen7NE(patient, day, m) {
+    const cb = document.getElementById("context-banner-screen-7");
+    if (cb) cb.innerHTML = buildContextBannerHtml(day, m);
 
-    document.getElementById("btn-screen6-ne-yes")?.classList.toggle("selected-yes", Boolean(day.neActive));
-    document.getElementById("btn-screen6-ne-no")?.classList.toggle("selected-no", !day.neActive && day.neEvaluated);
+    document.getElementById("btn-screen7-ne-yes")?.classList.toggle("selected-yes", Boolean(day.neActive));
+    document.getElementById("btn-screen7-ne-no")?.classList.toggle("selected-no", !day.neActive && day.neEvaluated);
 
     const panel = document.getElementById("ne-config-panel");
     panel.style.display = day.neActive ? "block" : "none";
@@ -1518,13 +1535,14 @@
   }
 
   // =========================================================================
-  // PANTALLA 7: VALORACIÓ DE NUTRICIÓ PARENTERAL (3a VIA)
+  // PANTALLA 8: VALORACIÓ DE NUTRICIÓ PARENTERAL (3a VIA)
   // =========================================================================
-  function renderScreen7NP(patient, day, m) {
-    document.getElementById("context-banner-screen-7").innerHTML = buildContextBannerHtml(day, m);
+  function renderScreen8NP(patient, day, m) {
+    const cb = document.getElementById("context-banner-screen-8");
+    if (cb) cb.innerHTML = buildContextBannerHtml(day, m);
 
-    document.getElementById("btn-screen7-np-yes")?.classList.toggle("selected-yes", Boolean(day.npActive));
-    document.getElementById("btn-screen7-np-no")?.classList.toggle("selected-no", !day.npActive && day.npEvaluated);
+    document.getElementById("btn-screen8-np-yes")?.classList.toggle("selected-yes", Boolean(day.npActive));
+    document.getElementById("btn-screen8-np-no")?.classList.toggle("selected-no", !day.npActive && day.npEvaluated);
 
     const panel = document.getElementById("np-config-panel");
     panel.style.display = day.npActive ? "block" : "none";
@@ -1641,7 +1659,10 @@
     return list.map((a) => `<div class="alert-box alert-${a.lvl}" style="margin-top:8px;">${a.txt}</div>`).join("");
   }
 
-  function renderScreen8Monitoring(patient, day, m) {
+  // =========================================================================
+  // PANTALLA 9: MONITORITZACIÓ DE TOLERÀNCIA GI I METABÒLICA
+  // =========================================================================
+  function renderScreen9Monitoring(patient, day, m) {
     // Inputs GI
     setVal("inp-gi-vrg", day.giVrgMl || "");
     setVal("inp-gi-vomiting", day.giVomiting || "no");
@@ -1803,11 +1824,11 @@
   }
 
   // =========================================================================
-  // PANTALLA 9: BALANÇ FINAL DEL DIA I NOTA SAP
+  // PANTALLA 10: BALANÇ FINAL DEL DIA I NOTA SAP
   // =========================================================================
-  function renderScreen9Balance(patient, day, m) {
-    const s9Title = document.getElementById("screen-9-title");
-    if (s9Title) s9Title.textContent = `📊 Balanç Final · Dia ${day.dayNumber} (${day.location}) i Nota SAP`;
+  function renderScreen10Balance(patient, day, m) {
+    const sTitle = document.getElementById("screen-10-title") || document.getElementById("screen-9-title");
+    if (sTitle) sTitle.textContent = `📊 Balanç Final · Dia ${day.dayNumber} (${day.location}) i Nota SAP`;
 
     const tbody = document.getElementById("global-balance-tbody");
     if (tbody) {
@@ -2195,15 +2216,15 @@
     nextD.phaseLabel = targetLocation === "PLANTA" ? `Dia ${nextNum} Planta - Seguiment` : `Dia ${nextNum} UCI - Evolució`;
     nextD.date = new Date().toISOString().slice(0, 10);
 
-    // La Valoració a l'Ingrés (Pantalles 1 i 2) ja queda guardada del 1r dia!
-    // Per tant, el nou dia s'obre directament a la Pantalla 3 (Objectius del Dia).
+    // La Valoració a l'Ingrés (Pantalles 1, 2 i 3) ja queda guardada del 1r dia!
+    // Per tant, el nou dia s'obre directament a la Pantalla 4 (Objectius del Dia).
     nextD.objectivesCompleted = false;
     nextD.nonNutrEvaluated = false;
     nextD.oralEvaluated = false;
     nextD.neEvaluated = false;
     nextD.npEvaluated = false;
     nextD.monitoringVisited = false;
-    nextD.currentScreen = 3;
+    nextD.currentScreen = 4;
 
     // Desplaça el registre setmanal de glicèmies/insulina: el dia d'avui passa a ser "Ahir"
     const curTotalIns =
@@ -2490,7 +2511,13 @@
     bindGlimCheck("chk-glim-etio-acute", "glimEtioAcuteInflammation");
     bindGlimCheck("chk-glim-etio-chronic", "glimEtioChronicInflammation");
 
-    // TRANSICIÓ PANTALLA 2 -> PANTALLA 3 (Valoració ingrés -> Objectius del dia)
+    // Sub-pestanyes de Valoració a l'Ingrés (Antropometria <-> Escales de Risc)
+    document.getElementById("subtab-to-s2")?.addEventListener("click", () => goToScreen(2));
+    document.getElementById("subtab-to-s3")?.addEventListener("click", () => goToScreen(3));
+    document.getElementById("subtab2-to-s2")?.addEventListener("click", () => goToScreen(2));
+    document.getElementById("subtab2-to-s3")?.addEventListener("click", () => goToScreen(3));
+
+    // TRANSICIÓ PANTALLA 2 -> PANTALLA 3 (Antropometria -> Escales de nutrició)
     document.getElementById("btn-back-to-1")?.addEventListener("click", () => goToScreen(1));
     document.getElementById("btn-next-from-2")?.addEventListener("click", () => {
       const p = getActivePatient();
@@ -2511,6 +2538,18 @@
         d.actualWeightKg = p.admissionWeightKg;
       }
       goToScreen(3);
+    });
+
+    // TRANSICIÓ PANTALLA 3 -> PANTALLA 4 (Escales de nutrició -> Objectius del dia)
+    document.getElementById("btn-back-to-2")?.addEventListener("click", () => goToScreen(2));
+    document.getElementById("btn-next-from-3")?.addEventListener("click", () => {
+      const p = getActivePatient();
+      const d = getActiveDay(p);
+      p.admissionCompleted = true;
+      if (p.days.length === 1 && (!d.actualWeightKg || d.actualWeightKg <= 0)) {
+        d.actualWeightKg = p.admissionWeightKg;
+      }
+      goToScreen(4);
     });
 
     // Inputs Pantalla 2
@@ -2617,27 +2656,27 @@
       });
     });
 
-    // TRANSICIONS PANTALLA 3 (Objectius del Dia)
-    document.getElementById("btn-back-to-2")?.addEventListener("click", () => goToScreen(2));
-    document.getElementById("btn-next-from-3")?.addEventListener("click", () => {
+    // TRANSICIONS PANTALLA 4 (Objectius del Dia)
+    document.getElementById("btn-back-to-3")?.addEventListener("click", () => goToScreen(3));
+    document.getElementById("btn-next-from-4")?.addEventListener("click", () => {
       const d = getActiveDay();
       if (!(d.kcalPerKgTarget > 0) || !(d.proteinPerKgTarget > 0)) {
         alert("Defineix uns objectius d'energia i proteïnes vàlids per a aquest dia.");
         return;
       }
       d.objectivesCompleted = true;
-      goToScreen(4);
-    });
-
-    // TRANSICIONS PANTALLA 4 (Aports No Nutricionals)
-    document.getElementById("btn-back-to-3")?.addEventListener("click", () => goToScreen(3));
-    document.getElementById("btn-next-from-4")?.addEventListener("click", () => {
-      getActiveDay().nonNutrEvaluated = true;
       goToScreen(5);
     });
 
-    // PANTALLA 5: VIA ORAL (SÍ / NO)
-    document.getElementById("btn-screen5-oral-yes")?.addEventListener("click", () => {
+    // TRANSICIONS PANTALLA 5 (Aports No Nutricionals)
+    document.getElementById("btn-back-to-4")?.addEventListener("click", () => goToScreen(4));
+    document.getElementById("btn-next-from-5")?.addEventListener("click", () => {
+      getActiveDay().nonNutrEvaluated = true;
+      goToScreen(6);
+    });
+
+    // PANTALLA 6: VIA ORAL (SÍ / NO)
+    document.getElementById("btn-screen6-oral-yes")?.addEventListener("click", () => {
       const p = getActivePatient();
       const d = getActiveDay(p);
       d.oralActive = true;
@@ -2648,25 +2687,25 @@
       renderAll();
     });
 
-    // Si marca NO a Via Oral -> Tanca Via Oral i obre directament la Pantalla 6 (Nutrició Enteral)!
-    document.getElementById("btn-screen5-oral-no")?.addEventListener("click", () => {
+    // Si marca NO a Via Oral -> Tanca Via Oral i obre directament la Pantalla 7 (Nutrició Enteral)!
+    document.getElementById("btn-screen6-oral-no")?.addEventListener("click", () => {
       const d = getActiveDay();
       d.oralActive = false;
       d.oralEvaluated = true;
-      goToScreen(6);
+      goToScreen(7);
     });
 
-    document.getElementById("btn-back-to-4")?.addEventListener("click", () => goToScreen(4));
-    document.getElementById("btn-next-from-5")?.addEventListener("click", () => {
+    document.getElementById("btn-back-to-5")?.addEventListener("click", () => goToScreen(5));
+    document.getElementById("btn-next-from-6")?.addEventListener("click", () => {
       getActiveDay().oralEvaluated = true;
-      goToScreen(6);
+      goToScreen(7);
     });
-    document.getElementById("btn-skip-to-monitoring-from-5")?.addEventListener("click", () => {
+    document.getElementById("btn-skip-to-monitoring-from-6")?.addEventListener("click", () => {
       const d = getActiveDay();
       d.oralEvaluated = true;
       d.neEvaluated = true;
       d.npEvaluated = true;
-      goToScreen(8);
+      goToScreen(9);
     });
 
     document.getElementById("inp-oral-diet")?.addEventListener("change", (e) => {
@@ -2727,8 +2766,8 @@
       renderAll();
     });
 
-    // PANTALLA 6: NUTRICIÓ ENTERAL (SÍ / NO)
-    document.getElementById("btn-screen6-ne-yes")?.addEventListener("click", () => {
+    // PANTALLA 7: NUTRICIÓ ENTERAL (SÍ / NO)
+    document.getElementById("btn-screen7-ne-yes")?.addEventListener("click", () => {
       const p = getActivePatient();
       const d = getActiveDay(p);
       d.neActive = true;
@@ -2741,24 +2780,24 @@
       renderAll();
     });
 
-    // Si marca NO a Nutrició Enteral -> Obre directament la Pantalla 7 (Nutrició Parenteral)!
-    document.getElementById("btn-screen6-ne-no")?.addEventListener("click", () => {
+    // Si marca NO a Nutrició Enteral -> Obre directament la Pantalla 8 (Nutrició Parenteral)!
+    document.getElementById("btn-screen7-ne-no")?.addEventListener("click", () => {
       const d = getActiveDay();
       d.neActive = false;
       d.neEvaluated = true;
-      goToScreen(7);
+      goToScreen(8);
     });
 
-    document.getElementById("btn-back-to-5")?.addEventListener("click", () => goToScreen(5));
-    document.getElementById("btn-next-from-6")?.addEventListener("click", () => {
+    document.getElementById("btn-back-to-6")?.addEventListener("click", () => goToScreen(6));
+    document.getElementById("btn-next-from-7")?.addEventListener("click", () => {
       getActiveDay().neEvaluated = true;
-      goToScreen(7);
+      goToScreen(8);
     });
-    document.getElementById("btn-skip-to-monitoring-from-6")?.addEventListener("click", () => {
+    document.getElementById("btn-skip-to-monitoring-from-7")?.addEventListener("click", () => {
       const d = getActiveDay();
       d.neEvaluated = true;
       d.npEvaluated = true;
-      goToScreen(8);
+      goToScreen(9);
     });
 
     bindDayInput("inp-ne-formula", "neFormulaId", false);
@@ -2803,8 +2842,8 @@
       renderAll();
     });
 
-    // PANTALLA 7: NUTRICIÓ PARENTERAL (SÍ / NO)
-    document.getElementById("btn-screen7-np-yes")?.addEventListener("click", () => {
+    // PANTALLA 8: NUTRICIÓ PARENTERAL (SÍ / NO)
+    document.getElementById("btn-screen8-np-yes")?.addEventListener("click", () => {
       const d = getActiveDay();
       d.npActive = true;
       d.npEvaluated = true;
@@ -2812,18 +2851,18 @@
       renderAll();
     });
 
-    // Si marca NO a Nutrició Parenteral -> Obre directament la Pantalla 8 (Monitorització GI i Metabòlica)
-    document.getElementById("btn-screen7-np-no")?.addEventListener("click", () => {
+    // Si marca NO a Nutrició Parenteral -> Obre directament la Pantalla 9 (Monitorització GI i Metabòlica)
+    document.getElementById("btn-screen8-np-no")?.addEventListener("click", () => {
       const d = getActiveDay();
       d.npActive = false;
       d.npEvaluated = true;
-      goToScreen(8);
+      goToScreen(9);
     });
 
-    document.getElementById("btn-back-to-6")?.addEventListener("click", () => goToScreen(6));
-    document.getElementById("btn-next-from-7")?.addEventListener("click", () => {
+    document.getElementById("btn-back-to-7")?.addEventListener("click", () => goToScreen(7));
+    document.getElementById("btn-next-from-8")?.addEventListener("click", () => {
       getActiveDay().npEvaluated = true;
-      goToScreen(8);
+      goToScreen(9);
     });
 
     bindDayInput("inp-np-type", "npType", false);
@@ -2896,15 +2935,15 @@
     ].forEach(([id, prop]) => bindNullableNum(id, prop));
     bindDayInput("inp-lab-thiamine-supp", "labThiamineSupp", false);
 
-    // PANTALLA 8: MONITORITZACIÓ GI I METABÒLICA
-    document.getElementById("btn-back-to-7")?.addEventListener("click", () => goToScreen(7));
-    document.getElementById("btn-next-from-8")?.addEventListener("click", () => {
+    // PANTALLA 9: MONITORITZACIÓ GI I METABÒLICA
+    document.getElementById("btn-back-to-8")?.addEventListener("click", () => goToScreen(8));
+    document.getElementById("btn-next-from-9")?.addEventListener("click", () => {
       getActiveDay().monitoringVisited = true;
-      goToScreen(9);
+      goToScreen(10);
     });
 
-    // PANTALLA 9: BALANÇ FINAL I NOTA SAP
-    document.getElementById("btn-back-to-8")?.addEventListener("click", () => goToScreen(8));
+    // PANTALLA 10: BALANÇ FINAL I NOTA SAP
+    document.getElementById("btn-back-to-9")?.addEventListener("click", () => goToScreen(9));
     bindDayInput("inp-clinical-notes", "clinicalNotes", false);
 
     document.getElementById("btn-copy-note")?.addEventListener("click", () => {
