@@ -936,6 +936,143 @@ table.clinical-table th.num {
 }
 
 /* ========================================================================= */
+/* ESCALES DE RISC NUTRICIONAL (NRS-2002 & NUTRIC) I CRITERIS GLIM           */
+/* ========================================================================= */
+
+.screening-section {
+  border-top: 1px dashed var(--border);
+  padding-top: 18px;
+}
+
+.screening-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.score-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.score-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+
+.score-result-banner {
+  margin-top: 10px;
+  padding: 11px 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.score-result-banner.high-risk {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.score-result-banner.low-risk {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.score-result-banner.moderate-risk {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+/* GLIM CRITERIA */
+.glim-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.glim-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--surface-alt);
+  gap: 10px;
+}
+
+.glim-switch-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  cursor: pointer;
+  background: #fff;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  user-select: none;
+}
+
+.glim-columns-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.glim-col {
+  background: var(--surface-alt);
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.glim-col-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.glim-criterion-group {
+  margin-bottom: 12px;
+}
+
+.glim-crit-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.glim-auto-hint {
+  font-size: 11px;
+  color: var(--primary-dark);
+  margin-top: 3px;
+  font-weight: 600;
+}
+
+/* ========================================================================= */
 /* RESPONSIVE MEDIA QUERIES (MOBILE, TABLET & SMALL SCREENS)                 */
 /* ========================================================================= */
 
