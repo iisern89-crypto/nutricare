@@ -77,14 +77,22 @@
     <div class="screen-stepper no-print" id="screen-stepper-bar"></div>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 1: VALORACIÓ NUTRICIONAL A L'INGRÉS (NOMÉS EL 1r DIA)      -->
+    <!-- PANTALLA 1: INTRODUCCIÓ D'UN MALALT                               -->
     <!-- ================================================================== -->
     <section class="app-screen" id="screen-1">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pantalla 1 · Obligatòria només el 1r Dia</span>
-          <h2>📏 Valoració Nutricional a l'Ingrés</h2>
-          <p>Introdueix les dades antropomètriques i de risc a l'ingrés. Un cop desades, ja quedaran guardades per a tots els dies següents.</p>
+          <span class="screen-step-tag">Pas 1 de 9 · Identificació del Malalt</span>
+          <h2>👤 Introducció del Malalt</h2>
+          <p>Identificació del pacient, dades demogràfiques bàsiques i antecedents clínics principals.</p>
+        </div>
+        <div class="screen-header-actions no-print" style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-sm btn-outline" id="btn-load-demo-patient" title="Omple dades reals d'un pacient tipus crític per fer proves">
+            📋 Carregar Malalt d'Exemple
+          </button>
+          <button type="button" class="btn btn-sm btn-outline" id="btn-clear-patient" title="Reinicia els camps per introduir un malalt nou">
+            ✨ Nou Malalt
+          </button>
         </div>
       </div>
 
@@ -92,16 +100,16 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Nom o Identificador del Pacient <span class="req-star">*</span></label>
-            <input type="text" id="inp-patient-name" class="form-control" placeholder="Ex: Pacient Box 4 / Cognoms">
+            <input type="text" id="inp-patient-name" class="form-control" placeholder="Ex: Box 4 / Cognoms, Inicials">
           </div>
           <div class="form-group">
             <label>NHC / Llit</label>
-            <input type="text" id="inp-patient-nhc" class="form-control" placeholder="Opcional">
+            <input type="text" id="inp-patient-nhc" class="form-control" placeholder="Ex: 123456 / Llit 12">
           </div>
           <div class="form-group">
             <label>Sexe <span class="req-star">*</span></label>
             <select id="inp-patient-sex" class="form-control">
-              <option value="">-- Selecciona --</option>
+              <option value="">-- Selecciona el sexe --</option>
               <option value="F">Dona (F)</option>
               <option value="M">Home (M)</option>
             </select>
@@ -113,6 +121,54 @@
               <span class="addon-unit">anys</span>
             </div>
           </div>
+          <div class="form-group">
+            <label>Ubicació Inicial <span class="req-star">*</span></label>
+            <select id="inp-patient-initial-loc" class="form-control">
+              <option value="UCI">🔴 UCI (Unitat de Crítics)</option>
+              <option value="PLANTA">🔵 Planta d'Hospitalització</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Diabetis / Hiperglucèmia d'estrès</label>
+            <select id="inp-patient-diabetes" class="form-control">
+              <option value="false">No</option>
+              <option value="true">Sí (DM coneguda o hiperglucèmia d'estrès)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Disfàgia / Alteració deglució</label>
+            <select id="inp-patient-dysphagia" class="form-control">
+              <option value="false">No</option>
+              <option value="true">Sí (Precisa textura modificada / líquids espessits)</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="step-1-validation-msg" class="alert-box alert-danger" style="display:none; margin-top:16px;"></div>
+      </div>
+
+      <div class="screen-footer">
+        <span style="font-size:12.5px; color:var(--text-muted);">Completa les dades bàsiques per continuar a la valoració nutricional inicial.</span>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-1">
+          Continuar a la Valoració Nutricional (Pas 2) →
+        </button>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- PANTALLA 2: VALORACIÓ NUTRICIONAL A L'INGRÉS                      -->
+    <!-- ================================================================== -->
+    <section class="app-screen" id="screen-2">
+      <div class="screen-header">
+        <div>
+          <span class="screen-step-tag">Pas 2 de 9 · Valoració Antropomètrica Inicial</span>
+          <h2>📏 Valoració Nutricional a l'Ingrés</h2>
+          <p>Introdueix l'alçada, el pes actual a l'ingrés i el pes habitual. Es calcularà automàticament el Pes de Treball, l'IMC i el risc de realimentació.</p>
+        </div>
+      </div>
+
+      <div class="screen-body">
+        <div class="form-grid">
           <div class="form-group">
             <label>Altura / Talla <span class="req-star">*</span></label>
             <div class="input-addon">
@@ -128,7 +184,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label>Pes Habitual (6-12 mesos) <span class="req-star">*</span></label>
+            <label>Pes Habitual (darrers 6-12 mesos) <span class="req-star">*</span></label>
             <div class="input-addon">
               <input type="number" id="inp-habitual-weight" class="form-control" min="25" max="300" step="0.1" placeholder="175">
               <span class="addon-unit">kg</span>
@@ -141,20 +197,6 @@
               <span class="addon-unit">mg/dL</span>
             </div>
           </div>
-          <div class="form-group">
-            <label>Diabetis / Hiperglucèmia</label>
-            <select id="inp-patient-diabetes" class="form-control">
-              <option value="false">No</option>
-              <option value="true">Sí (DM o Hiperglucèmia d'estrès)</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Disfàgia / Alteració deglució</label>
-            <select id="inp-patient-dysphagia" class="form-control">
-              <option value="false">No</option>
-              <option value="true">Sí (Precisa textura modificada)</option>
-            </select>
-          </div>
         </div>
 
         <!-- Càlculs automàtics (IMC, Pes Ideal, Pes Ajustat, Pes de Treball, Pèrdua/Guany de pes) -->
@@ -163,25 +205,25 @@
         <!-- Alerta de Síndrome de Realimentació -->
         <div id="admission-risk-alert"></div>
 
-        <div id="step-1-validation-msg" class="alert-box alert-danger" style="display:none;"></div>
+        <div id="step-2-validation-msg" class="alert-box alert-danger" style="display:none; margin-top:16px;"></div>
       </div>
 
       <div class="screen-footer">
-        <span style="font-size:12.5px; color:var(--text-muted);">Un cop guardada, la valoració a l'ingrés no es tornarà a demanar en els dies següents.</span>
-        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-1">
-          Guardar Valoració a l'Ingrés i Obrir Objectius del Dia →
+        <button type="button" class="btn btn-outline" id="btn-back-to-1">← Tornar a Dades del Malalt</button>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-2">
+          Guardar Valoració i Definir Objectius del Dia (Pas 3) →
         </button>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 2: OBJECTIUS NUTRICIONALS DEL DIA DE VALORACIÓ             -->
+    <!-- PANTALLA 3: OBJECTIUS NUTRICIONALS DEL DIA DE VALORACIÓ             -->
     <!-- ================================================================== -->
-    <section class="app-screen" id="screen-2">
+    <section class="app-screen" id="screen-3">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pantalla 2 · Obligatòria per a cada dia de valoració</span>
-          <h2 id="screen-2-title">🎯 Objectius Nutricionals del Dia</h2>
+          <span class="screen-step-tag">Pas 3 de 9 · Objectius Nutricionals Diaris</span>
+          <h2 id="screen-3-title">🎯 Objectius Nutricionals del Dia</h2>
           <p>Revisa el Pes del Dia i el Pes de Treball, i defineix els requeriments d'energia, proteïnes i lípids per avui.</p>
         </div>
       </div>
@@ -286,27 +328,27 @@
       </div>
 
       <div class="screen-footer">
-        <button type="button" class="btn btn-outline" id="btn-back-to-1">← Revisar Valoració d'Ingrés</button>
-        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-2">
-          Confirmar Objectius del Dia i Obrir Aports No Nutricionals →
+        <button type="button" class="btn btn-outline" id="btn-back-to-2">← Tornar a Valoració d'Ingrés</button>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-3">
+          Confirmar Objectius i Passar a Càlcul d'Aports (Pas 4) →
         </button>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 3: PESTANYA D'APORTS CALÒRICS NO NUTRICIONALS (ml/h)       -->
+    <!-- PANTALLA 4: PESTANYA D'APORTS CALÒRICS NO NUTRICIONALS (ml/h)       -->
     <!-- ================================================================== -->
-    <section class="app-screen" id="screen-3">
+    <section class="app-screen" id="screen-4">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pantalla 3 · Medicació amb Aport Calòric No Nutricional</span>
+          <span class="screen-step-tag">Pas 4 de 9 · Medicació amb Aport Calòric No Nutricional</span>
           <h2>💉 Aports Calòrics No Nutricionals (Velocitat ml/h i Volum 24h)</h2>
           <p>Introdueix la velocitat d'infusió en <strong>ml/h</strong> (i les hores d'infusió al dia) o el volum total de Sèrum Glucosat, Propofol, Citrat TRRC, Clevidipino i Lactulosa.</p>
         </div>
       </div>
 
       <div class="screen-body">
-        <div class="route-context-banner" id="context-banner-screen-3"></div>
+        <div class="route-context-banner" id="context-banner-screen-4"></div>
 
         <div class="table-wrap" style="border:1px solid var(--border); border-radius:10px; overflow:hidden;">
           <table class="clinical-table">
@@ -472,36 +514,36 @@
       </div>
 
       <div class="screen-footer">
-        <button type="button" class="btn btn-outline" id="btn-back-to-2">← Tornar a Objectius del Dia</button>
-        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-3">
-          Confirmar i Passar a Valorar Ingesta Oral (Pantalla 4) →
+        <button type="button" class="btn btn-outline" id="btn-back-to-3">← Tornar a Objectius del Dia</button>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-4">
+          Continuar a Aports Via Oral (Pas 5) →
         </button>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 4: VALORAR SI ES POT FER INGESTA ORAL (1a VIA)             -->
+    <!-- PANTALLA 5: VALORAR SI ES POT FER INGESTA ORAL (1a VIA)             -->
     <!-- ================================================================== -->
-    <section class="app-screen" id="screen-4">
+    <section class="app-screen" id="screen-5">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pantalla 4 · 1a Via d'Aportació Nutricional (Via Fisiològica)</span>
-          <h2>🍽️ Valoració d'Ingesta per Via Oral (± Suplements)</h2>
+          <span class="screen-step-tag">Pas 5 de 9 · 1a Via d'Aportació Nutricional: Via Oral</span>
+          <h2>🍽️ Càlcul d'Aports: Ingesta per Via Oral (± Suplements)</h2>
           <p>Indica si el pacient pot alimentar-se per via oral. Si marques «No», passaràs directament a la pantalla de Nutrició Enteral.</p>
         </div>
       </div>
 
       <div class="screen-body">
-        <div class="route-context-banner" id="context-banner-screen-4"></div>
+        <div class="route-context-banner" id="context-banner-screen-5"></div>
 
         <div class="decision-gate-box">
           <h3>Es pot fer Ingesta Oral avui (dieta hospitalària i/o suplements orals)?</h3>
           <p>Valora l'estat de consciència, ventilació mecànica i seguretat de la deglució.</p>
           <div class="decision-buttons-row">
-            <button type="button" class="decision-big-btn" id="btn-screen4-oral-yes">
+            <button type="button" class="decision-big-btn" id="btn-screen5-oral-yes">
               ✅ SÍ, pot fer Ingesta Oral
             </button>
-            <button type="button" class="decision-big-btn" id="btn-screen4-oral-no">
+            <button type="button" class="decision-big-btn" id="btn-screen5-oral-no">
               ❌ NO pot fer Via Oral → Passar a Nutrició Enteral
             </button>
           </div>
@@ -558,41 +600,41 @@
       </div>
 
       <div class="screen-footer">
-        <button type="button" class="btn btn-outline" id="btn-back-to-3">← Tornar a No Nutricionals</button>
+        <button type="button" class="btn btn-outline" id="btn-back-to-4">← Tornar a No Nutricionals</button>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button type="button" class="btn btn-outline" id="btn-skip-to-monitoring-from-4">
-            🩺 Ja està cobert · Passar a Monitorització GI/Metabòlica →
+          <button type="button" class="btn btn-outline" id="btn-skip-to-monitoring-from-5">
+            🩺 Ja està cobert · Passar a Monitorització (Pas 8) →
           </button>
-          <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-4">
-            Continuar a Valorar Nutrició Enteral (Pantalla 5) →
+          <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-5">
+            Continuar a Nutrició Enteral (Pas 6) →
           </button>
         </div>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 5: VALORAR SI ES POT FER NUTRICIÓ ENTERAL (2a VIA)         -->
+    <!-- PANTALLA 6: VALORAR SI ES POT FER NUTRICIÓ ENTERAL (2a VIA)         -->
     <!-- ================================================================== -->
-    <section class="app-screen" id="screen-5">
+    <section class="app-screen" id="screen-6">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pantalla 5 · 2a Via d'Aportació (Sonda SNG / SNJ / GTT)</span>
-          <h2>🍼 Valoració de Nutrició Enteral (NE)</h2>
+          <span class="screen-step-tag">Pas 6 de 9 · 2a Via d'Aportació: Nutrició Enteral (NE)</span>
+          <h2>🍼 Càlcul d'Aports: Nutrició Enteral (NE)</h2>
           <p>Si la via oral no és possible o no arriba als requeriments i el tracte gastrointestinal és funcionant, configura la Nutrició Enteral.</p>
         </div>
       </div>
 
       <div class="screen-body">
-        <div class="route-context-banner" id="context-banner-screen-5"></div>
+        <div class="route-context-banner" id="context-banner-screen-6"></div>
 
         <div class="decision-gate-box">
           <h3>Es pot / cal administrar Nutrició Enteral per sonda avui?</h3>
           <p>Si marques «No», passaràs directament a la pantalla de Nutrició Parenteral.</p>
           <div class="decision-buttons-row">
-            <button type="button" class="decision-big-btn" id="btn-screen5-ne-yes">
+            <button type="button" class="decision-big-btn" id="btn-screen6-ne-yes">
               ✅ SÍ, pautar Nutrició Enteral (NE)
             </button>
-            <button type="button" class="decision-big-btn" id="btn-screen5-ne-no">
+            <button type="button" class="decision-big-btn" id="btn-screen6-ne-no">
               ❌ NO precisa / Contraindicada → Passar a Parenteral
             </button>
           </div>
@@ -649,41 +691,41 @@
       </div>
 
       <div class="screen-footer">
-        <button type="button" class="btn btn-outline" id="btn-back-to-4">← Tornar a Via Oral</button>
+        <button type="button" class="btn btn-outline" id="btn-back-to-5">← Tornar a Via Oral</button>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button type="button" class="btn btn-outline" id="btn-skip-to-monitoring-from-5">
-            🩺 Ja està cobert · Passar a Monitorització GI/Metabòlica →
+          <button type="button" class="btn btn-outline" id="btn-skip-to-monitoring-from-6">
+            🩺 Ja està cobert · Passar a Monitorització (Pas 8) →
           </button>
-          <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-5">
-            Continuar a Valorar Nutrició Parenteral (Pantalla 6) →
+          <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-6">
+            Continuar a Nutrició Parenteral (Pas 7) →
           </button>
         </div>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 6: VALORAR SI CAL NUTRICIÓ PARENTERAL (3a VIA)             -->
+    <!-- PANTALLA 7: VALORAR SI CAL NUTRICIÓ PARENTERAL (3a VIA)             -->
     <!-- ================================================================== -->
-    <section class="app-screen" id="screen-6">
+    <section class="app-screen" id="screen-7">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pantalla 6 · 3a Via d'Aportació (Total o Complementària)</span>
-          <h2>💧 Valoració de Nutrició Parenteral (NP)</h2>
+          <span class="screen-step-tag">Pas 7 de 9 · 3a Via d'Aportació: Nutrició Parenteral (NP)</span>
+          <h2>💧 Càlcul d'Aports: Nutrició Parenteral (NP)</h2>
           <p>Valora si el pacient precisa Nutrició Parenteral (per tracte GI no funcionant o per cobrir el dèficit d'Oral/Enteral).</p>
         </div>
       </div>
 
       <div class="screen-body">
-        <div class="route-context-banner" id="context-banner-screen-6"></div>
+        <div class="route-context-banner" id="context-banner-screen-7"></div>
 
         <div class="decision-gate-box">
           <h3>Cal administrar Nutrició Parenteral (NP) avui?</h3>
           <p>Si marques «No», passaràs directament a la pestanya de Monitorització Gastrointestinal i Metabòlica.</p>
           <div class="decision-buttons-row">
-            <button type="button" class="decision-big-btn" id="btn-screen6-np-yes">
+            <button type="button" class="decision-big-btn" id="btn-screen7-np-yes">
               ✅ SÍ, pautar Nutrició Parenteral (NP)
             </button>
-            <button type="button" class="decision-big-btn" id="btn-screen6-np-no">
+            <button type="button" class="decision-big-btn" id="btn-screen7-np-no">
               ❌ NO precisa NP → Passar a Monitorització GI i Metabòlica
             </button>
           </div>
@@ -758,20 +800,20 @@
       </div>
 
       <div class="screen-footer">
-        <button type="button" class="btn btn-outline" id="btn-back-to-5">← Tornar a Nutrició Enteral</button>
-        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-6">
-          🩺 Passar a Monitorització Tolerància GI i Metabòlica (Pantalla 7) →
+        <button type="button" class="btn btn-outline" id="btn-back-to-6">← Tornar a Nutrició Enteral</button>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-7">
+          🩺 Continuar a Monitorització GI i Metabòlica (Pas 8) →
         </button>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 7: MONITORITZACIÓ TOLERÀNCIA GI I METABÒLICA (SETMANAL)   -->
+    <!-- PANTALLA 8: MONITORITZACIÓ TOLERÀNCIA GI I METABÒLICA (SETMANAL)   -->
     <!-- ================================================================== -->
-    <section class="app-screen" id="screen-7">
+    <section class="app-screen" id="screen-8">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pantalla 7 · Seguiment Clínic i Analític Setmanal</span>
+          <span class="screen-step-tag">Pas 8 de 9 · Monitorització de Tolerància GI i Metabòlica</span>
           <h2>🩺 Monitorització de Tolerància Gastrointestinal i Metabòlica</h2>
           <p>Registra la tolerància GI (retencions, estrenyiment, diarrea) i els paràmetres analítics (Triglicèrids, Ferro, Vit D, Tiamina, Balanç N, Glicèmies/Insulina 7d per l'Índex de Resistència a la Insulina, i Urea/Creatinina per l'UCR).</p>
         </div>
@@ -1020,21 +1062,21 @@
       </div>
 
       <div class="screen-footer">
-        <button type="button" class="btn btn-outline" id="btn-back-to-6">← Tornar a Nutrició Parenteral</button>
-        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-7">
-          📊 Obrir Balanç Final del Dia i Nota pel Curs Clínic (Pantalla 8) →
+        <button type="button" class="btn btn-outline" id="btn-back-to-7">← Tornar a Nutrició Parenteral</button>
+        <button type="button" class="btn btn-lg btn-primary" id="btn-next-from-8">
+          📊 Veure Balanç Final del Dia i Resum SAP (Pas 9) →
         </button>
       </div>
     </section>
 
     <!-- ================================================================== -->
-    <!-- PANTALLA 8: BALANÇ FINAL DEL DIA I NOTA PEL CURS CLÍNIC (SAP)       -->
+    <!-- PANTALLA 9: BALANÇ FINAL DEL DIA I NOTA PEL CURS CLÍNIC (SAP)       -->
     <!-- ================================================================== -->
-    <section class="app-screen" id="screen-8">
+    <section class="app-screen" id="screen-9">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pantalla 8 · Resum Final i Seguiment Evolutiu</span>
-          <h2 id="screen-8-title">📊 Balanç Final del Dia i Nota pel Curs Clínic (SAP)</h2>
+          <span class="screen-step-tag">Pas 9 de 9 · Balanç Final del Dia i Curs Clínic</span>
+          <h2 id="screen-9-title">📊 Balanç Final del Dia i Nota pel Curs Clínic (SAP)</h2>
           <p>Comprovació global d'aports vs objectius del dia, índexs metabòlics (UCR, IRI, Balanç N) i generació d'informe clínic.</p>
         </div>
       </div>
@@ -1086,7 +1128,7 @@
       </div>
 
       <div class="screen-footer no-print">
-        <button type="button" class="btn btn-outline" id="btn-back-to-7">← Tornar a Monitorització GI/Metabòlica</button>
+        <button type="button" class="btn btn-outline" id="btn-back-to-8">← Tornar a Monitorització GI/Metabòlica</button>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <button type="button" class="btn btn-lg btn-outline" id="btn-footer-next-uci">
             ➕ Nou Dia de Valoració a l'UCI (Obre Objectius Dia Següent)
