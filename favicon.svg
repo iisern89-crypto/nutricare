@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="45%" stop-color="#14b8a6"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+
+    <!-- Outer Glow / Ambient -->
+    <radialGradient id="ambientGlow" cx="50%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="60%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Avocado Body Gradient -->
+    <linearGradient id="avoSkin" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="50%" stop-color="#16a34a"/>
+      <stop offset="100%" stop-color="#15803d"/>
+    </linearGradient>
+
+    <linearGradient id="avoBelly" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="60%" stop-color="#fef9c3"/>
+      <stop offset="100%" stop-color="#d9f99d"/>
+    </linearGradient>
+
+    <!-- Heart Pit Gradient -->
+    <linearGradient id="pitGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="50%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#c2410c"/>
+    </linearGradient>
+
+    <!-- Stethoscope Metallic Gradient -->
+    <linearGradient id="metalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="50%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+
+    <linearGradient id="tubeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <!-- Drop Shadows -->
+    <filter id="shadowBig" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#0f172a" flood-opacity="0.35"/>
+    </filter>
+    <filter id="shadowSmall" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#0f172a" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Background Wallpaper for iOS App Icon -->
+  <rect width="512" height="512" fill="url(#bgGrad)"/>
+  <rect width="512" height="512" fill="url(#ambientGlow)"/>
+
+  <!-- Subtle Medical Background Pattern (ECG pulse line in background) -->
+  <path d="M 0 420 L 130 420 L 155 385 L 175 455 L 200 370 L 225 435 L 245 420 L 512 420"
+        fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.25"/>
+
+  <!-- Decorative Sparkles ✨ -->
+  <!-- Top Left Sparkle -->
+  <g transform="translate(76, 100) scale(1.1)" filter="url(#shadowSmall)">
+    <path d="M 0 -22 Q 0 0 22 0 Q 0 0 0 22 Q 0 0 -22 0 Q 0 0 0 -22 Z" fill="#fef08a"/>
+    <circle cx="0" cy="0" r="5" fill="#ffffff"/>
+  </g>
+  <!-- Small Star Left -->
+  <circle cx="115" cy="165" r="5" fill="#fef08a" opacity="0.9"/>
+  <!-- Top Right Sparkle -->
+  <g transform="translate(425, 120) scale(0.9)" filter="url(#shadowSmall)">
+    <path d="M 0 -22 Q 0 0 22 0 Q 0 0 0 22 Q 0 0 -22 0 Q 0 0 0 -22 Z" fill="#fef08a"/>
+    <circle cx="0" cy="0" r="5" fill="#ffffff"/>
+  </g>
+  <!-- Small Star Right -->
+  <circle cx="390" cy="185" r="6" fill="#fef08a" opacity="0.9"/>
+  <circle cx="440" cy="220" r="4" fill="#ffffff" opacity="0.8"/>
+
+  <!-- MAIN MASCOT: Happy Avocado Doctor -->
+  <g filter="url(#shadowBig)">
+    <!-- Leaf on Head -->
+    <path d="M 256 95 C 275 60 320 65 325 90 C 325 115 285 125 256 95 Z" fill="#22c55e" stroke="#15803d" stroke-width="4"/>
+    <path d="M 268 93 Q 295 85 310 85" fill="none" stroke="#86efac" stroke-width="3" stroke-linecap="round"/>
+    <!-- Stem -->
+    <path d="M 256 105 Q 252 82 245 75" fill="none" stroke="#78350f" stroke-width="7" stroke-linecap="round"/>
+
+    <!-- Avocado Outer Body -->
+    <path d="M 256 105 
+             C 320 105 355 160 365 230 
+             C 378 315 355 400 256 400 
+             C 157 400 134 315 147 230 
+             C 157 160 192 105 256 105 Z" 
+          fill="url(#avoSkin)" stroke="#14532d" stroke-width="8"/>
+
+    <!-- Avocado Belly (Light Creamy Green/Yellow) -->
+    <path d="M 256 130 
+             C 305 130 332 175 340 235 
+             C 350 305 330 380 256 380 
+             C 182 380 162 305 172 235 
+             C 180 175 207 130 256 130 Z" 
+          fill="url(#avoBelly)"/>
+
+    <!-- Mascot Face -->
+    <!-- Cheerful Big Eyes (Kawaii style) -->
+    <g>
+      <!-- Left Eye -->
+      <ellipse cx="218" cy="215" rx="14" ry="17" fill="#0f172a"/>
+      <circle cx="213" cy="209" r="6" fill="#ffffff"/>
+      <circle cx="224" cy="222" r="3" fill="#ffffff"/>
+
+      <!-- Right Eye (Winking or Wide Happy) -->
+      <ellipse cx="294" cy="215" rx="14" ry="17" fill="#0f172a"/>
+      <circle cx="289" cy="209" r="6" fill="#ffffff"/>
+      <circle cx="300" cy="222" r="3" fill="#ffffff"/>
+
+      <!-- Rosy Cheeks (Blush) -->
+      <ellipse cx="195" cy="232" rx="12" ry="7" fill="#fb7185" opacity="0.6"/>
+      <ellipse cx="317" cy="232" rx="12" ry="7" fill="#fb7185" opacity="0.6"/>
+
+      <!-- Cute Smiling Mouth with Tongue -->
+      <path d="M 240 232 Q 256 250 272 232" fill="none" stroke="#0f172a" stroke-width="5" stroke-linecap="round"/>
+      <path d="M 246 236 Q 256 254 266 236 Z" fill="#f43f5e"/>
+    </g>
+
+    <!-- Central Nutritious Heart-Shaped Pit -->
+    <g transform="translate(256, 310)" filter="url(#shadowSmall)">
+      <!-- Heart Pit -->
+      <path d="M 0 35 
+               C -45 5 -55 -25 -25 -42 
+               C -8 -50 0 -25 0 -20 
+               C 0 -25 8 -50 25 -42 
+               C 55 -25 45 5 0 35 Z" 
+            fill="url(#pitGrad)" stroke="#7c2d12" stroke-width="4"/>
+      <!-- Pit Highlight -->
+      <path d="M -18 -32 C -8 -40 -2 -25 0 -20" fill="none" stroke="#fdba74" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+
+      <!-- Medical Cross inside Heart Pit -->
+      <g transform="translate(0, -6) scale(0.9)">
+        <rect x="-5" y="-18" width="10" height="36" rx="4" fill="#ffffff"/>
+        <rect x="-18" y="-5" width="36" height="10" rx="4" fill="#ffffff"/>
+      </g>
+    </g>
+
+    <!-- Stethoscope Draped Around Neck -->
+    <!-- Earpieces / Binaural -->
+    <path d="M 195 160 C 185 140 180 120 190 108 C 196 100 206 104 210 114 C 213 125 210 148 215 168"
+          fill="none" stroke="url(#metalGrad)" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="190" cy="108" r="6" fill="#0284c7"/>
+
+    <path d="M 317 160 C 327 140 332 120 322 108 C 316 100 306 104 302 114 C 299 125 302 148 297 168"
+          fill="none" stroke="url(#metalGrad)" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="322" cy="108" r="6" fill="#0284c7"/>
+
+    <!-- Tubing Meeting at Y-connector -->
+    <path d="M 215 168 Q 235 185 248 185" fill="none" stroke="url(#tubeGrad)" stroke-width="7" stroke-linecap="round"/>
+    <path d="M 297 168 Q 277 185 264 185" fill="none" stroke="url(#tubeGrad)" stroke-width="7" stroke-linecap="round"/>
+    <!-- Connector -->
+    <rect x="250" y="180" width="12" height="12" rx="3" fill="url(#metalGrad)"/>
+
+    <!-- Flexible Tube descending down the right side to chest piece -->
+    <path d="M 256 192 
+             C 256 215 345 220 348 270 
+             C 350 310 325 345 305 345" 
+          fill="none" stroke="url(#tubeGrad)" stroke-width="7" stroke-linecap="round"/>
+
+    <!-- Stethoscope Chestpiece (Bell & Diaphragm) -->
+    <g transform="translate(305, 345)" filter="url(#shadowSmall)">
+      <circle cx="0" cy="0" r="22" fill="url(#metalGrad)" stroke="#475569" stroke-width="2"/>
+      <circle cx="0" cy="0" r="16" fill="#0284c7"/>
+      <circle cx="0" cy="0" r="13" fill="#38bdf8"/>
+      <!-- Inner Pulse on Stethoscope -->
+      <path d="M -8 0 L -3 0 L 0 -5 L 3 5 L 6 0 L 8 0" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <!-- Bottom App Name Ribbon: "NutriCare" -->
+  <g transform="translate(256, 456)" filter="url(#shadowSmall)">
+    <rect x="-115" y="-24" width="230" height="42" rx="21" fill="#0f172a" opacity="0.88"/>
+    <rect x="-115" y="-24" width="230" height="42" rx="21" fill="none" stroke="#38bdf8" stroke-width="2" opacity="0.6"/>
+    <text x="0" y="5" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif" 
+          font-size="22" font-weight="800" letter-spacing="1.5" fill="#ffffff" text-anchor="middle">
+      NUTRICARE
+    </text>
+    <circle cx="-85" cy="-3" r="5" fill="#22c55e"/>
+    <circle cx="85" cy="-3" r="5" fill="#38bdf8"/>
+  </g>
+</svg>
