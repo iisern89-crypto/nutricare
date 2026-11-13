@@ -1125,6 +1125,12 @@ table.clinical-table th.num {
   font-weight: 600;
 }
 
+.ewgsop-sarcf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+
 /* ========================================================================= */
 /* RESPONSIVE MEDIA QUERIES (MOBILE, TABLET & SMALL SCREENS)                 */
 /* ========================================================================= */
@@ -1351,7 +1357,8 @@ table.clinical-table th.num {
     box-sizing: border-box !important;
   }
 
-  .glim-columns-grid {
+  .glim-columns-grid,
+  .ewgsop-sarcf-grid {
     grid-template-columns: 1fr !important;
     gap: 10px !important;
     width: 100% !important;
