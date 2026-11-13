@@ -176,7 +176,7 @@
         <!-- Sub-pestanyes de navegació directa -->
         <div class="admission-subtabs-bar">
           <button type="button" class="adm-subtab active" id="subtab-to-s2">📏 1. Antropometria i Realimentació</button>
-          <button type="button" class="adm-subtab" id="subtab-to-s3">📊 2. Escales de Risc i GLIM</button>
+          <button type="button" class="adm-subtab" id="subtab-to-s3">📊 2. Escales, GLIM i Sarcopènia</button>
         </div>
 
         <div class="form-grid">
@@ -233,9 +233,9 @@
     <section class="app-screen" id="screen-3">
       <div class="screen-header">
         <div>
-          <span class="screen-step-tag">Pas 3 de 10 · Escales de Risc i Desnutrició</span>
-          <h2>📊 Escales de Risc Nutricional (NRS-2002 i NUTRIC) i GLIM</h2>
-          <p>Estratificació del risc de desnutrició segons guies oficials ESPEN / SEMICYUC per a pacients hospitalitzats i crítics.</p>
+          <span class="screen-step-tag">Pas 3 de 10 · Escales de Risc, Desnutrició i Sarcopènia</span>
+          <h2>📊 Escales de Risc (NRS-2002 / NUTRIC), GLIM i Sarcopènia (EWGSOP2)</h2>
+          <p>Estratificació del risc nutricional (ESPEN / SEMICYUC), diagnòstic GLIM i cribatge/valoració de sarcopènia segons guies EWGSOP2.</p>
         </div>
       </div>
 
@@ -243,7 +243,7 @@
         <!-- Sub-pestanyes de navegació directa -->
         <div class="admission-subtabs-bar">
           <button type="button" class="adm-subtab" id="subtab2-to-s2">📏 1. Antropometria i Realimentació</button>
-          <button type="button" class="adm-subtab active" id="subtab2-to-s3">📊 2. Escales de Risc i GLIM</button>
+          <button type="button" class="adm-subtab active" id="subtab2-to-s3">📊 2. Escales, GLIM i Sarcopènia</button>
         </div>
 
         <div class="screening-grid">
@@ -430,6 +430,180 @@
             </div>
 
             <div id="glim-result-box" class="score-result-banner" style="margin-top:16px;"></div>
+          </div>
+        </div>
+
+        <!-- VALORACIÓ / SCREENING DE SARCOPÈNIA (EWGSOP2 · ALGORITME F-A-C-S) -->
+        <div class="glim-card" id="card-ewgsop2" style="margin-top:18px;">
+          <div class="glim-header-bar">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <span style="font-size:18px;">💪</span>
+              <div>
+                <strong style="font-size:14.5px; color:var(--text);">Cribatge i Diagnòstic de Sarcopènia (Guies EWGSOP2)</strong>
+                <span class="badge badge-info" id="badge-ewgsop-quick" style="margin-left:6px; font-size:11px;">Algoritme F-A-C-S</span>
+              </div>
+            </div>
+            <label class="glim-switch-label">
+              <input type="checkbox" id="chk-enable-ewgsop">
+              <span>Avaluar Sarcopènia (EWGSOP2)</span>
+            </label>
+          </div>
+
+          <div id="ewgsop-body-wrapper" style="display:none; padding:16px; border-top:1px solid var(--border);">
+            <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">
+              Segons el consens europeu <strong>EWGSOP2</strong> (Cruz-Jentoft et al.), la valoració segueix la seqüència <strong>F-A-C-S</strong>: <em>Find</em> (Cribatge SARC-F) → <em>Assess</em> (Força muscular = Sarcopènia Probable) → <em>Confirm</em> (Quantitat/Qualitat muscular = Sarcopènia Confirmada) → <em>Severity</em> (Rendiment físic = Sarcopènia Greu).
+            </p>
+
+            <!-- PAS 1: FIND CASES (SARC-F + Sospita Clínica) -->
+            <div class="glim-col" style="margin-bottom:14px;">
+              <div class="glim-col-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                <span>1. FIND (Cribatge de casos) · Qüestionari SARC-F (0 - 10 punts)</span>
+                <span id="badge-sarcf-score" class="badge badge-success">SARC-F: 0/10</span>
+              </div>
+
+              <div class="ewgsop-sarcf-grid">
+                <div class="glim-criterion-group">
+                  <label class="glim-crit-label">S · Força (aixecar/portar 4,5 kg)</label>
+                  <select id="sel-sarcf-strength" class="form-control form-control-sm">
+                    <option value="0">0 pts · Cap dificultat</option>
+                    <option value="1">1 pt · Alguna dificultat</option>
+                    <option value="2">2 pts · Molta o incapaç</option>
+                  </select>
+                </div>
+
+                <div class="glim-criterion-group">
+                  <label class="glim-crit-label">A · Ajuda per caminar (creuar habitació)</label>
+                  <select id="sel-sarcf-walking" class="form-control form-control-sm">
+                    <option value="0">0 pts · Cap dificultat</option>
+                    <option value="1">1 pt · Alguna dificultat</option>
+                    <option value="2">2 pts · Molta, caminador o incapaç</option>
+                  </select>
+                </div>
+
+                <div class="glim-criterion-group">
+                  <label class="glim-crit-label">R · Aixecar-se d'una cadira o llit</label>
+                  <select id="sel-sarcf-chair" class="form-control form-control-sm">
+                    <option value="0">0 pts · Cap dificultat</option>
+                    <option value="1">1 pt · Alguna dificultat</option>
+                    <option value="2">2 pts · Molta o incapaç sense ajuda</option>
+                  </select>
+                </div>
+
+                <div class="glim-criterion-group">
+                  <label class="glim-crit-label">C · Pujar escales (10 esglaons)</label>
+                  <select id="sel-sarcf-stairs" class="form-control form-control-sm">
+                    <option value="0">0 pts · Cap dificultat</option>
+                    <option value="1">1 pt · Alguna dificultat</option>
+                    <option value="2">2 pts · Molta o incapaç</option>
+                  </select>
+                </div>
+
+                <div class="glim-criterion-group">
+                  <label class="glim-crit-label">F · Caigudes (en l'últim any)</label>
+                  <select id="sel-sarcf-falls" class="form-control form-control-sm">
+                    <option value="0">0 pts · Cap caiguda</option>
+                    <option value="1">1 pt · 1 a 3 caigudes</option>
+                    <option value="2">2 pts · ≥ 4 caigudes</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-check" style="margin-top:8px;">
+                <label class="form-check-label" style="font-size:12px; display:flex; align-items:flex-start; gap:6px; font-weight:600; color:var(--primary-dark);">
+                  <input type="checkbox" id="chk-ewgsop-clinical-suspicion" style="margin-top:2px;">
+                  <span>Sospita clínica directa (pacient crític UCI, catabolisme sever, enllitament prolongat o atròfia muscular evident no valorable per SARC-F)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- PASSOS 2, 3 I 4: ASSESS, CONFIRM, SEVERITY -->
+            <div class="glim-columns-grid">
+              <!-- PAS 2: ASSESS (FORÇA MUSCULAR) -->
+              <div class="glim-col">
+                <div class="glim-col-title">2. ASSESS · Força Muscular (Criteri 1)</div>
+                <div id="hint-ewgsop-strength-cutoffs" class="glim-auto-hint" style="margin-bottom:10px;">
+                  📏 Tall EWGSOP2 dinamometria: Home &lt; 27 kg | Dona &lt; 16 kg · Test 5 aixecades cadira: &gt; 15 s
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:11.5px; font-weight:700;">Dinamometria mà (kg)</label>
+                    <input type="number" id="inp-ewgsop-handgrip" class="form-control form-control-sm" min="0" max="80" step="0.5" placeholder="Ex: 14">
+                  </div>
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:11.5px; font-weight:700;">Test 5 aixecades (s)</label>
+                    <input type="number" id="inp-ewgsop-chair-sec" class="form-control form-control-sm" min="0" max="120" step="0.5" placeholder="Ex: 18">
+                  </div>
+                </div>
+
+                <div class="glim-criterion-group" style="margin-bottom:0;">
+                  <label class="glim-crit-label">Valoració de la Força Muscular</label>
+                  <select id="sel-ewgsop-strength-status" class="form-control form-control-sm">
+                    <option value="auto">Automàtic segons proves introduïdes</option>
+                    <option value="normal">Força conservada (Normal)</option>
+                    <option value="low">Baixa força muscular / Debilitat clínica (Criteri 1 +)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- PAS 3: CONFIRM (QUANTITAT / QUALITAT MUSCULAR) -->
+              <div class="glim-col">
+                <div class="glim-col-title">3. CONFIRM · Massa / Qualitat Muscular (Criteri 2)</div>
+                <div id="hint-ewgsop-mass-cutoffs" class="glim-auto-hint" style="margin-bottom:10px;">
+                  📏 Tall EWGSOP2: ASMI &lt; 7,0 kg/m² (H) / &lt; 5,5 kg/m² (D) · Panxell &lt; 31 cm
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:11.5px; font-weight:700;">Perímetre panxell (cm)</label>
+                    <input type="number" id="inp-ewgsop-calf-cm" class="form-control form-control-sm" min="15" max="60" step="0.5" placeholder="Tall < 31 cm">
+                  </div>
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:11.5px; font-weight:700;">Índex ASMI (kg/m²)</label>
+                    <input type="number" id="inp-ewgsop-asmi" class="form-control form-control-sm" min="2" max="15" step="0.1" placeholder="BIA / DXA">
+                  </div>
+                </div>
+
+                <div class="glim-criterion-group" style="margin-bottom:0;">
+                  <label class="glim-crit-label">Valoració Massa / Qualitat Muscular</label>
+                  <select id="sel-ewgsop-mass-status" class="form-control form-control-sm">
+                    <option value="auto">Automàtic segons perímetre panxell / ASMI</option>
+                    <option value="normal">Massa muscular conservada (Normal)</option>
+                    <option value="low">Baixa massa/qualitat muscular per BIA, Eco, TC o Panxell (Criteri 2 +)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- PAS 4: SEVERITY (RENDIMENT FÍSIC) -->
+              <div class="glim-col">
+                <div class="glim-col-title">4. SEVERITY · Rendiment Físic (Criteri 3 · Gravetat)</div>
+                <div class="glim-auto-hint" style="margin-bottom:10px;">
+                  📏 Tall EWGSOP2: Velocitat marxa ≤ 0,8 m/s · SPPB ≤ 8 pts · TUG ≥ 20 s
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:11.5px; font-weight:700;">Velocitat marxa (m/s)</label>
+                    <input type="number" id="inp-ewgsop-gait" class="form-control form-control-sm" min="0" max="3" step="0.05" placeholder="Tall ≤ 0,8">
+                  </div>
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:11.5px; font-weight:700;">SPPB (0 - 12 pts)</label>
+                    <input type="number" id="inp-ewgsop-sppb" class="form-control form-control-sm" min="0" max="12" step="1" placeholder="Tall ≤ 8">
+                  </div>
+                </div>
+
+                <div class="glim-criterion-group" style="margin-bottom:0;">
+                  <label class="glim-crit-label">Valoració Rendiment Físic</label>
+                  <select id="sel-ewgsop-perf-status" class="form-control form-control-sm">
+                    <option value="auto">Automàtic segons marxa / SPPB</option>
+                    <option value="normal">Rendiment físic conservat (Normal)</option>
+                    <option value="low">Baix rendiment físic / Enllitament / Incapaç de marxa (Criteri 3 +)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div id="ewgsop-result-box" class="score-result-banner" style="margin-top:16px;"></div>
           </div>
         </div>
       </div>
