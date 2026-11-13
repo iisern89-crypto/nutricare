@@ -950,7 +950,6 @@
     else if (day.currentScreen === 10) renderScreen10Balance(patient, day, m);
 
     renderModals(patient, day);
-    renderWizardModal(patient, day, m);
   }
 
   function renderTopContextBar(patient, day, m) {
@@ -1141,6 +1140,15 @@
     setVal("inp-patient-initial-loc", day.location || "UCI");
     setVal("inp-patient-diabetes", patient.diabetes ? "true" : "false");
     setVal("inp-patient-dysphagia", patient.dysphagia ? "true" : "false");
+
+    document.querySelectorAll('[data-sync-select="inp-patient-sex"]').forEach((btn) => {
+      btn.classList.toggle("active", btn.getAttribute("data-val") === patient.sex);
+    });
+    document.querySelectorAll('[data-sync-select="inp-patient-initial-loc"]').forEach((btn) => {
+      btn.classList.toggle("active", btn.getAttribute("data-val") === (day.location || "UCI"));
+    });
+    document.getElementById("btn-toggle-diabetes")?.classList.toggle("active", Boolean(patient.diabetes));
+    document.getElementById("btn-toggle-dysphagia")?.classList.toggle("active", Boolean(patient.dysphagia));
   }
 
   // =========================================================================
@@ -1156,50 +1164,27 @@
     if (anthroBox) {
       anthroBox.innerHTML = `
         <div class="calc-stat-box highlight">
-          <div class="stat-title">PES DE TREBALL CALCULAT</div>
-          <div class="stat-num">${fmt(m.anthropometry.workWeight, 2)} kg</div>
-          <div class="stat-formula">${m.anthropometry.isObeseAdjusted ? "Usa Pes Ajustat (IMC > 30)" : "Usa Pes Actual (IMC ≤ 30)"}</div>
+          <div class="stat-title">⚖️ PES DE TREBALL</div>
+          <div class="stat-num">${fmt(m.anthropometry.workWeight, 1)} kg</div>
+          <div class="stat-formula">${m.anthropometry.isObeseAdjusted ? "Pes Ajustat (IMC > 30)" : "Pes Actual (IMC ≤ 30)"}</div>
         </div>
         <div class="calc-stat-box">
-          <div class="stat-title">IMC A L'INGRÉS</div>
-          <div class="stat-num">${fmt(m.anthropometry.bmi, 2)} kg/m²</div>
-          <div class="stat-formula">${m.anthropometry.bmi > 30 ? "Obesitat (>30)" : m.anthropometry.bmi < 18.5 ? "Baix pes (<18.5)" : "18.5 - 30 kg/m²"}</div>
+          <div class="stat-title">IMC</div>
+          <div class="stat-num">${fmt(m.anthropometry.bmi, 1)} kg/m²</div>
+          <div class="stat-formula">${m.anthropometry.bmi > 30 ? "Obesitat (>30)" : m.anthropometry.bmi < 18.5 ? "Baix pes (<18.5)" : "Normal (18.5-30)"}</div>
         </div>
         <div class="calc-stat-box">
-          <div class="stat-title">PES IDEAL (DEVINE)</div>
-          <div class="stat-num">${fmt(m.anthropometry.idealWeight, 2)} kg</div>
-          <div class="stat-formula">${patient.sex === "M" ? "50" : "45,5"} + 0,91 × (Talla − 152,4)</div>
+          <div class="stat-title">PES IDEAL</div>
+          <div class="stat-num">${fmt(m.anthropometry.idealWeight, 1)} kg</div>
+          <div class="stat-formula">Devine (${patient.sex === "M" ? "H" : "D"})</div>
         </div>
         <div class="calc-stat-box">
-          <div class="stat-title">PES AJUSTAT</div>
-          <div class="stat-num">${fmt(m.anthropometry.adjustedWeight, 2)} kg</div>
-          <div class="stat-formula">PI + 0,25 × (Actual − PI)</div>
+          <div class="stat-title">VARIACIÓ PES</div>
+          <div class="stat-num" style="color:${m.anthropometry.weightLossPct > 10 ? "var(--danger)" : "var(--text)"}">
+            ${m.anthropometry.weightChangeKg < 0 ? `-${fmt(m.anthropometry.weightLossPct, 1)}%` : m.anthropometry.weightChangeKg > 0 ? `+${fmt(m.anthropometry.weightGainPct, 1)}%` : "0%"}
+          </div>
+          <div class="stat-formula">${fmt(m.anthropometry.weightChangeKg, 1)} kg vs habitual</div>
         </div>
-        ${(() => {
-          const a = m.anthropometry;
-          if (a.weightChangeKg < 0) {
-            return `
-        <div class="calc-stat-box">
-          <div class="stat-title">% PÈRDUA DE PES</div>
-          <div class="stat-num" style="color:${a.weightLossPct > 10 ? "var(--danger)" : "var(--text)"}">${fmt(a.weightLossPct, 1)}%</div>
-          <div class="stat-formula">${fmt(-a.weightChangeKg, 1)} kg perduts respecte l'habitual</div>
-        </div>`;
-          }
-          if (a.weightChangeKg > 0) {
-            return `
-        <div class="calc-stat-box">
-          <div class="stat-title">VARIACIÓ DE PES (GUANY)</div>
-          <div class="stat-num" style="color:var(--text);">+${fmt(a.weightGainPct, 1)}%</div>
-          <div class="stat-formula">+${fmt(a.weightChangeKg, 1)} kg sobre l'habitual · Sense pèrdua de pes</div>
-        </div>`;
-          }
-          return `
-        <div class="calc-stat-box">
-          <div class="stat-title">VARIACIÓ DE PES</div>
-          <div class="stat-num">0,0%</div>
-          <div class="stat-formula">Sense pèrdua de pes</div>
-        </div>`;
-        })()}
       `;
     }
 
@@ -1208,9 +1193,7 @@
       if (m.refeedingRisk) {
         riskBox.innerHTML = `
           <div class="alert-box alert-danger">
-            <strong>⚠️ ALERTA PROTOCOL: Risc de Síndrome de Realimentació detectat a l'ingrés</strong><br>
-            (${m.anthropometry.bmi < 18.5 ? "IMC < 18.5; " : ""}${m.anthropometry.weightLossPct > 10 ? `Pèrdua ponderal ${fmt(m.anthropometry.weightLossPct, 1)}% > 10%; ` : ""}${m.phosphateMgDl < 2.0 ? `Hipofosfatèmia ${m.phosphateMgDl} mg/dL` : ""})<br>
-            Recorda pautar <strong>Tiamina 300 mg IV abans d'iniciar + 100 mg/dia (5 dies)</strong>, monitoritzar ions i iniciar amb aport progressiu (25% → 100% en 4 dies).
+            <strong>🚨 Risc de Síndrome de Realimentació</strong> · Pautar Tiamina 300 mg IV i inici progressiu (10-15 kcal/kg).
           </div>
         `;
       } else {
@@ -1229,36 +1212,31 @@
     const nrsAgeEl = document.getElementById("row-nrs-age-info");
     if (nrsAgeEl) {
       nrsAgeEl.innerHTML = (patient.age >= 70)
-        ? `Edat: <strong>${patient.age} anys</strong> → <strong>+1 punt</strong> afegit automàticament (Criteri edat ≥ 70 anys)`
-        : `Edat: <strong>${patient.age || 0} anys</strong> → <strong>+0 punts</strong> (Criteri edat &lt; 70 anys)`;
+        ? `Edat: <strong>${patient.age} a</strong> → <strong>+1 pt</strong> (≥ 70a)`
+        : `Edat: <strong>${patient.age || 0} a</strong> → <strong>+0 pts</strong> (&lt; 70a)`;
     }
 
     const nrsBox = document.getElementById("nrs-result-box");
     if (nrsBox) {
       nrsBox.className = `score-result-banner ${m.nrs2002.isHighRisk ? "high-risk" : "low-risk"}`;
       nrsBox.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-          <div><strong>PUNTUACIÓ NRS-2002: ${m.nrs2002.total} / 7</strong></div>
-          <span class="badge ${m.nrs2002.isHighRisk ? "badge-danger" : "badge-success"}">${m.nrs2002.isHighRisk ? "RISC NUTRICIONAL ALT (≥ 3)" : "Risc Nutricional Baix (&lt; 3)"}</span>
-        </div>
-        <div style="font-size:12px; margin-top:4px;">
-          ${m.nrs2002.isHighRisk
-            ? "⚠️ <strong>Pacient en risc nutricional (Score ≥ 3).</strong> Cal iniciar pla de suport nutricional precoç i monitorització estreta."
-            : "ℹ️ <strong>Sense risc nutricional inicial (&lt; 3).</strong> Reavaluar setmanalment o davant de canvis en l'estat clínic."}
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+          <strong>NRS-2002: ${m.nrs2002.total} / 7</strong>
+          <span class="badge ${m.nrs2002.isHighRisk ? "badge-danger" : "badge-success"}">${m.nrs2002.isHighRisk ? "⚠️ Risc Alt (≥ 3)" : "✅ Risc Baix (< 3)"}</span>
         </div>
       `;
     }
     const nrsBadgeQuick = document.getElementById("badge-nrs-quick");
     if (nrsBadgeQuick) {
       nrsBadgeQuick.className = `badge ${m.nrs2002.isHighRisk ? "badge-danger" : "badge-success"}`;
-      nrsBadgeQuick.textContent = `${m.nrs2002.total}/7 · ${m.nrs2002.isHighRisk ? "Risc Alt" : "Risc Baix"}`;
+      nrsBadgeQuick.textContent = `${m.nrs2002.total}/7`;
     }
 
     // --- 2. RENDER NUTRIC SCORE ---
     const nutricAgeEl = document.getElementById("row-nutric-age-info");
     if (nutricAgeEl) {
       const pAge = Number(patient.age) || 0;
-      nutricAgeEl.innerHTML = `Edat pacient: <strong>${pAge} anys</strong> → <strong>+${m.nutricScore.agePoints} punts</strong> (${pAge >= 75 ? "≥ 75 anys [2p]" : pAge >= 50 ? "50-74 anys [1p]" : "< 50 anys [0p]"})`;
+      nutricAgeEl.innerHTML = `Edat: <strong>${pAge} a</strong> → <strong>+${m.nutricScore.agePoints} pts</strong>`;
     }
     setVal("sel-nutric-apache", patient.nutricApache ?? 1);
     setVal("sel-nutric-sofa", patient.nutricSofa ?? 1);
@@ -1269,24 +1247,19 @@
     if (nutricBox) {
       nutricBox.className = `score-result-banner ${m.nutricScore.isHighRisk ? "high-risk" : "low-risk"}`;
       nutricBox.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-          <div><strong>PUNTUACIÓ mNUTRIC: ${m.nutricScore.total} / 9</strong></div>
-          <span class="badge ${m.nutricScore.isHighRisk ? "badge-danger" : "badge-success"}">${m.nutricScore.isHighRisk ? "RISC NUTRICIONAL ALT (≥ 5)" : "Risc Baix (0 - 4)"}</span>
-        </div>
-        <div style="font-size:12px; margin-top:4px;">
-          ${m.nutricScore.isHighRisk
-            ? "⚠️ <strong>Pacient crític amb alt risc nutricional (≥ 5).</strong> Associat a pitjor evolució i mortalitat si no s'assoleixen els requeriments; es beneficia de suport nutricional intensiu."
-            : "ℹ️ <strong>Risc nutricional baix a UCI (0-4).</strong> La pauta tròfica o progressiva és segura; menor risc de complicacions per dèficit calòric precoç."}
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+          <strong>mNUTRIC: ${m.nutricScore.total} / 9</strong>
+          <span class="badge ${m.nutricScore.isHighRisk ? "badge-danger" : "badge-success"}">${m.nutricScore.isHighRisk ? "⚠️ Risc Alt (≥ 5)" : "✅ Risc Baix (0-4)"}</span>
         </div>
       `;
     }
     const nutricBadgeQuick = document.getElementById("badge-nutric-quick");
     if (nutricBadgeQuick) {
       nutricBadgeQuick.className = `badge ${m.nutricScore.isHighRisk ? "badge-danger" : "badge-success"}`;
-      nutricBadgeQuick.textContent = `${m.nutricScore.total}/9 · ${m.nutricScore.isHighRisk ? "Risc Alt" : "Risc Baix"}`;
+      nutricBadgeQuick.textContent = `${m.nutricScore.total}/9`;
     }
 
-    // --- 3. RENDER CRITERIS GLIM (VOLUNTARIS) ---
+    // --- 3. RENDER CRITERIS GLIM ---
     const chkGlim = document.getElementById("chk-enable-glim");
     if (chkGlim) chkGlim.checked = Boolean(patient.glimEnabled);
 
@@ -1296,13 +1269,13 @@
     const hintWeight = document.getElementById("hint-glim-weight");
     if (hintWeight) {
       hintWeight.textContent = m.anthropometry.weightLossPct > 0
-        ? `💡 Dada pacient: Pèrdua ${fmt(m.anthropometry.weightLossPct, 1)}% (${fmt(-m.anthropometry.weightChangeKg, 1)} kg)`
-        : "💡 Dada pacient: Sense pèrdua de pes constatada";
+        ? `Pèrdua: -${fmt(m.anthropometry.weightLossPct, 1)}%`
+        : "Sense pèrdua de pes";
     }
 
     const hintBmi = document.getElementById("hint-glim-bmi");
     if (hintBmi) {
-      hintBmi.textContent = `💡 Dada pacient: IMC ${fmt(m.anthropometry.bmi, 1)} kg/m² (${patient.age || 0} anys)`;
+      hintBmi.textContent = `IMC: ${fmt(m.anthropometry.bmi, 1)} kg/m²`;
     }
 
     setVal("sel-glim-pheno-weight", patient.glimPhenoWeightLoss || "none");
@@ -1323,22 +1296,15 @@
       glimBox.className = `score-result-banner ${m.glim.badgeClass === "badge-danger" ? "high-risk" : m.glim.badgeClass === "badge-warning" ? "moderate-risk" : "low-risk"}`;
       glimBox.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-          <div><strong>DIAGNÒSTIC GLIM: ${m.glim.diagnosisLabel}</strong></div>
+          <strong>GLIM: ${m.glim.diagnosisLabel}</strong>
           <span class="badge ${m.glim.badgeClass}">
-            ${m.glim.diagnosis === "severe" ? "Estadi 2 (Greu)" : m.glim.diagnosis === "moderate" ? "Estadi 1 (Moderada)" : "No diagnòstic"}
+            ${m.glim.diagnosis === "severe" ? "Estadi 2 (Greu)" : m.glim.diagnosis === "moderate" ? "Estadi 1 (Moderada)" : "No compleix"}
           </span>
-        </div>
-        <div style="font-size:12px; margin-top:4px;">
-          ${m.glim.diagnosis === "severe"
-            ? "🔴 <strong>Compleix criteris GLIM de Desnutrició Greu (Estadi 2):</strong> Requereix almenys 1 fenotípic sever + 1 etiològic. Pauta nutricional especialitzada i seguiment prioritari."
-            : m.glim.diagnosis === "moderate"
-            ? "🟡 <strong>Compleix criteris GLIM de Desnutrició Moderada (Estadi 1):</strong> Compleix almenys 1 criteri fenotípic moderat + 1 criteri etiològic."
-            : "ℹ️ <strong>Criteris GLIM incomplets:</strong> Cal complir com a mínim 1 criteri fenotípic I 1 criteri etiològic per establir el diagnòstic formal de desnutrició."}
         </div>
       `;
     }
 
-    // --- 4. RENDER CRIBATGE I VALORACIÓ DE SARCOPÈNIA (EWGSOP2) ---
+    // --- 4. RENDER SARCOPÈNIA (EWGSOP2) ---
     const ew = m.ewgsop2;
     const chkEwgsop = document.getElementById("chk-enable-ewgsop");
     if (chkEwgsop) chkEwgsop.checked = Boolean(patient.ewgsopEnabled);
@@ -1353,7 +1319,7 @@
         ewQuickBadge.textContent = ew.shortLabel;
       } else {
         ewQuickBadge.className = "badge badge-info";
-        ewQuickBadge.textContent = "Algoritme F-A-C-S";
+        ewQuickBadge.textContent = "F-A-C-S";
       }
     }
 
@@ -1367,17 +1333,17 @@
     const sarcfBadge = document.getElementById("badge-sarcf-score");
     if (sarcfBadge) {
       sarcfBadge.className = `badge ${ew.findPositive ? "badge-danger" : "badge-success"}`;
-      sarcfBadge.textContent = `SARC-F: ${ew.sarcfTotal}/10 · ${ew.sarcfPositive ? "POSITIU (≥ 4)" : ew.clinicalSuspicion ? "Sospita Clínica +" : "Negatiu (< 4)"}`;
+      sarcfBadge.textContent = `SARC-F: ${ew.sarcfTotal}/10`;
     }
 
     const hintStrength = document.getElementById("hint-ewgsop-strength-cutoffs");
     if (hintStrength) {
-      hintStrength.textContent = `📏 Punt de tall pacient (${patient.sex === "M" ? "Home" : "Dona"}): Dinamometria < ${ew.handgripCutoff} kg · Test 5 aixecades > 15 s`;
+      hintStrength.textContent = `Tall (${patient.sex === "M" ? "H" : "D"}): < ${ew.handgripCutoff} kg · Cadira > 15 s`;
     }
 
     const hintMass = document.getElementById("hint-ewgsop-mass-cutoffs");
     if (hintMass) {
-      hintMass.textContent = `📏 Punt de tall pacient (${patient.sex === "M" ? "Home" : "Dona"}): ASMI < ${fmt(ew.asmiCutoff, 1)} kg/m² · Perímetre panxell < 31 cm`;
+      hintMass.textContent = `Tall (${patient.sex === "M" ? "H" : "D"}): ASMI < ${fmt(ew.asmiCutoff, 1)} · Panxell < 31 cm`;
     }
 
     setVal("inp-ewgsop-handgrip", patient.ewgsopHandgripKg ?? "");
@@ -1397,36 +1363,18 @@
       const boxTone = ew.badgeClass === "badge-danger" ? "high-risk" : ew.badgeClass === "badge-warning" ? "moderate-risk" : "low-risk";
       ewBox.className = `score-result-banner ${boxTone}`;
 
-      let recHtml = "";
-      if (ew.diagnosis === "severe_sarcopenia") {
-        recHtml = "🔴 <strong>Sarcopènia Greu / Severa (Criteris 1 + 2 + 3):</strong> Baixa força + baixa massa/qualitat muscular + baix rendiment físic. <strong>Actuació:</strong> Objectiu hiperproteic prioritari (1,5 - 2,0 g/kg/dia), valorar suplements enriquits amb HMB / leucina + vitamina D i rehabilitació motora precoç.";
-      } else if (ew.diagnosis === "confirmed_sarcopenia") {
-        recHtml = "🟠 <strong>Sarcopènia Confirmada (Criteris 1 + 2):</strong> Baixa força muscular confirmada per baixa quantitat/qualitat muscular (BIA/Eco/Panxell). <strong>Actuació:</strong> Garantir aport proteic ≥ 1,2 - 1,5 g/kg/dia i fisioteràpia de força.";
-      } else if (ew.diagnosis === "probable_sarcopenia") {
-        recHtml = "🟡 <strong>Sarcopènia Probable (Criteri 1 positiu - Baixa força):</strong> Segons les guies EWGSOP2, a la pràctica clínica això és <strong>suficient per iniciar ja intervenció nutricional hiperproteica i exercici físic</strong> mentre s'investiguen les causes o es mesura la massa muscular.";
-      } else if (ew.diagnosis === "low_muscle_mass_only") {
-        recHtml = "🟡 <strong>Baixa Massa Muscular Documentada (Criteri 2 positiu):</strong> Massa muscular reduïda (perímetre panxell < 31 cm o ASMI baix). Serveix directament com a <strong>Criteri Fenotípic C de GLIM</strong>.";
-      } else if (ew.diagnosis === "screening_positive") {
-        recHtml = "🟡 <strong>Cribatge Positiu (SARC-F ≥ 4 o Sospita Clínica):</strong> El pas <em>Find</em> és positiu. Segons l'algoritme EWGSOP2, cal procedir al Pas 2 (<em>Assess</em>) mesurant la força amb dinamometria de mà o test de les 5 aixecades.";
-      } else {
-        recHtml = "🟢 <strong>Sense evidència actual de sarcopènia segons EWGSOP2:</strong> Cribatge SARC-F < 4 i sense dèficit de força ni de massa muscular constatat. Reavaluar periòdicament durant l'ingrés.";
-      }
-
       const needsGlimSync = ew.lowMass && (!patient.glimEnabled || patient.glimPhenoMuscle === "none");
       const syncBtnHtml = needsGlimSync
-        ? `<div style="margin-top:8px;">
-             <button type="button" class="btn btn-sm btn-outline" id="btn-sync-ewgsop-to-glim" style="background:#fff;">
-               🔗 Traslladar baixa massa muscular al Criteri C de GLIM (${ew.diagnosis === "severe_sarcopenia" ? "Greu" : "Moderada"})
-             </button>
-           </div>`
+        ? `<button type="button" class="btn btn-sm btn-outline" id="btn-sync-ewgsop-to-glim" style="background:#fff; margin-top:6px;">
+             🔗 Sincronitzar baixa massa muscular amb GLIM
+           </button>`
         : "";
 
       ewBox.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-          <div><strong>RESULTAT EWGSOP2: ${ew.diagnosisLabel}</strong></div>
+          <strong>EWGSOP2: ${ew.diagnosisLabel}</strong>
           <span class="badge ${ew.badgeClass}">${ew.shortLabel}</span>
         </div>
-        <div style="font-size:12px; margin-top:4px;">${recHtml}</div>
         ${syncBtnHtml}
       `;
 
@@ -1444,7 +1392,7 @@
   // =========================================================================
   function renderScreen4Objectives(patient, day, m) {
     const titleEl = document.getElementById("screen-4-title");
-    if (titleEl) titleEl.textContent = `🎯 Objectius Nutricionals · Dia ${day.dayNumber} (${day.location})`;
+    if (titleEl) titleEl.textContent = `🎯 Objectius · Dia ${day.dayNumber} (${day.location})`;
 
     setVal("inp-day-location", day.location);
     setVal("inp-day-phase", day.phaseLabel || "");
@@ -1462,39 +1410,46 @@
     document.getElementById("ic-kcal-group").style.display = isIC ? "flex" : "none";
     document.getElementById("ic-pct-group").style.display = isIC ? "flex" : "none";
 
-    // Pes de Treball del dia (calculat a partir del Pes del Dia)
+    // Ressaltar la targeta visual de plantilla activa
+    const presetMap = {
+      refeed_d1: 10,
+      uci_early: 15,
+      uci_stable: 20,
+      uci_trrc: 25,
+      planta_anabolic: 30
+    };
+    document.querySelectorAll(".visual-preset-card").forEach((card) => {
+      const k = card.getAttribute("data-preset-phase");
+      card.classList.toggle("active", !isIC && Number(day.kcalPerKgTarget) === presetMap[k]);
+    });
+
     setVal("disp-work-weight-day", fmt(m.anthropometry.workWeight, 1));
     const wwTag = document.getElementById("disp-work-weight-tag");
-    if (wwTag) wwTag.textContent = m.anthropometry.isObeseAdjusted ? "kg (Ajustat IMC>30)" : "kg (Actual)";
+    if (wwTag) wwTag.textContent = m.anthropometry.isObeseAdjusted ? "kg (Ajustat)" : "kg";
 
     const targetsBox = document.getElementById("targets-calculated-summary");
     if (targetsBox) {
       targetsBox.innerHTML = `
         <div class="calc-results-grid">
           <div class="calc-stat-box highlight">
-            <div class="stat-title">PES DEL DIA / PES DE TREBALL</div>
-            <div class="stat-num">${fmt(m.anthropometry.actualWeight, 1)} / ${fmt(m.anthropometry.workWeight, 1)} kg</div>
-            <div class="stat-formula">IMC ${fmt(m.anthropometry.bmi, 1)} · ${m.anthropometry.isObeseAdjusted ? `Pes Ajustat = PI ${fmt(m.anthropometry.idealWeight, 1)} + 0,25 × (Actual − PI)` : "Pes Actual (IMC ≤ 30)"}</div>
+            <div class="stat-title">⚡ OBJECTIU ENERGIA</div>
+            <div class="stat-num">${fmt(m.targets.energyKcal, 0)} kcal</div>
+            <div class="stat-formula">${isIC ? `${day.icPercentTarget}% CI` : `${day.kcalPerKgTarget} kcal/kg × ${fmt(m.anthropometry.workWeight, 1)} kg`}</div>
           </div>
           <div class="calc-stat-box highlight">
-            <div class="stat-title">OBJECTIU ENERGIA DIA ${day.dayNumber}</div>
-            <div class="stat-num">${fmt(m.targets.energyKcal, 0)} kcal/dia</div>
-            <div class="stat-formula">${isIC ? `${day.icPercentTarget}% de CI (${day.icMeasuredKcal} kcal)` : `${day.kcalPerKgTarget} kcal/kg × ${fmt(m.anthropometry.workWeight, 1)} kg (Pes treball)`}</div>
-          </div>
-          <div class="calc-stat-box highlight">
-            <div class="stat-title">OBJECTIU PROTEÏNES DIA ${day.dayNumber}</div>
-            <div class="stat-num">${fmt(m.targets.proteinG, 1)} g/dia</div>
-            <div class="stat-formula">${day.proteinPerKgTarget} g/kg × ${fmt(m.anthropometry.workWeight, 1)} kg (${fmt(m.targets.proteinG / 6.25, 1)} g N)</div>
+            <div class="stat-title">🥩 OBJECTIU PROTEÏNES</div>
+            <div class="stat-num">${fmt(m.targets.proteinG, 1)} g</div>
+            <div class="stat-formula">${day.proteinPerKgTarget} g/kg (${fmt(m.targets.proteinG / 6.25, 1)} g N)</div>
           </div>
           <div class="calc-stat-box">
-            <div class="stat-title">OBJECTIU LÍPIDS DIA ${day.dayNumber}</div>
-            <div class="stat-num">${fmt(m.targets.lipidsG, 1)} g/dia</div>
-            <div class="stat-formula">${day.lipidsPerKgTarget} g/kg (Límit màx ≤ 1,5 g/kg)</div>
+            <div class="stat-title">💧 LÍPIDS MÀX.</div>
+            <div class="stat-num">${fmt(m.targets.lipidsG, 1)} g</div>
+            <div class="stat-formula">${day.lipidsPerKgTarget} g/kg</div>
           </div>
           <div class="calc-stat-box">
-            <div class="stat-title">HIDRATS DE CARBONI</div>
-            <div class="stat-num">100 - ${fmt(m.targets.maxSafeGlucoseG, 0)} g</div>
-            <div class="stat-formula">Límit màx oxidació: 4-5 mg/kg/min</div>
+            <div class="stat-title">🍬 GLUCOSA MÀX.</div>
+            <div class="stat-num">${fmt(m.targets.maxSafeGlucoseG, 0)} g</div>
+            <div class="stat-formula">≤ 5 mg/kg/min</div>
           </div>
         </div>
       `;
@@ -2493,25 +2448,6 @@
     }
   }
 
-  function openWizardModal(forcedStep) {
-    const p = getActivePatient();
-    const d = getActiveDay(p);
-    if (forcedStep) {
-      state.wizardStep = forcedStep;
-    } else {
-      const pBasic = Boolean(p.name && p.sex && (p.age > 0));
-      const pAnthro = Boolean(p.heightCm >= 100 && p.admissionWeightKg >= 25 && p.habitualWeightKg >= 25);
-      if (!pBasic) state.wizardStep = 1;
-      else if (!pAnthro) state.wizardStep = 2;
-      else if (d.currentScreen === 3) state.wizardStep = 3;
-      else if (!d.objectivesCompleted || d.currentScreen === 4) state.wizardStep = 4;
-      else if (d.currentScreen >= 5 && d.currentScreen <= 8) state.wizardStep = 5;
-      else state.wizardStep = 7;
-    }
-    document.getElementById("modal-wizard")?.classList.add("open");
-    renderAll();
-  }
-
   function renderWizardBanner(patient, day, m) {
     const banner = document.getElementById("wizard-guide-banner");
     if (!banner) return;
@@ -2519,930 +2455,74 @@
     const scr = day.currentScreen || 1;
     const pct = Math.min(100, Math.round((scr / 10) * 100));
 
-    let promptHtml = "";
-    let quickActionBtnHtml = "";
+    const stepNames = [
+      "",
+      "👤 1. Pacient",
+      "📏 2. Antropometria",
+      "📊 3. Escales i Sarcopènia",
+      `🎯 4. Objectius Dia ${day.dayNumber}`,
+      "💉 5. No Nutricionals",
+      "🍽️ 6. Via Oral",
+      "🍼 7. Nutrició Enteral",
+      "💧 8. Nutrició Parenteral",
+      "🩺 9. Monitorització",
+      "📋 10. Balanç i Nota SAP"
+    ];
+
+    let statusText = "";
+    let actionHtml = "";
 
     if (scr === 1) {
       const ok = Boolean(patient.name && patient.sex && (patient.age > 0));
-      promptHtml = ok
-        ? `✅ <strong>Dades de ${patient.name} llestes.</strong> Prem "Continuar a Antropometria" o obre l'<strong>Assistent Guiat (Wizard)</strong> per completar tota la pauta amb preguntes ràpides.`
-        : `👋 <strong>Pas 1 (Identificació):</strong> Introdueix el Nom/Box, Sexe i Edat del malalt, o prem el botó taronja <strong>🪄 Assistent Guiat</strong> perquè et porti de la mà pregunta a pregunta.`;
-      quickActionBtnHtml = ok
-        ? `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-next">Pas 2: Antropometria →</button>`
-        : `<button type="button" class="btn btn-sm btn-outline" id="wiz-banner-demo">⚡ Omplir Exemple Ràpid</button>`;
+      statusText = ok ? `✅ ${patient.name} (${patient.age}a)` : "Nom, edat, sexe i ubicació";
+      actionHtml = ok
+        ? `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-next">Següent →</button>`
+        : `<button type="button" class="btn btn-sm btn-outline" id="wiz-banner-demo">⚡ Exemple</button>`;
     } else if (scr === 2) {
       const ok = Boolean(patient.heightCm >= 100 && patient.admissionWeightKg >= 25 && patient.habitualWeightKg >= 25);
-      promptHtml = ok
-        ? `✅ <strong>Pes de Treball calculat: ${fmt(m.anthropometry.workWeight, 1)} kg</strong> (IMC ${fmt(m.anthropometry.bmi, 1)}). ${m.refeedingRisk.level === "ALT" ? "🚨 Alerta de Risc Alt de Refeeding detectada." : "Pots passar a les escales de risc."}`
-        : `📏 <strong>Pas 2 (Antropometria):</strong> Escriu la Talla (cm), el Pes actual (kg) i el Pes habitual (kg) per calcular el Pes de Treball automàticament.`;
-      if (ok) {
-        quickActionBtnHtml = `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-next">Pas 3: Escales i Sarcopènia →</button>`;
-      }
+      statusText = ok ? `⚖️ Pes Treball: ${fmt(m.anthropometry.workWeight, 1)} kg · IMC ${fmt(m.anthropometry.bmi, 1)}` : "Talla i pesos";
+      if (ok) actionHtml = `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-next">Següent →</button>`;
     } else if (scr === 3) {
-      promptHtml = `📊 <strong>Pas 3 (Cribratge):</strong> NRS-2002: <strong>${m.nrs2002.total}/7</strong> · NUTRIC: <strong>${m.nutricScore.total}/9</strong>. Pots auto-ajustar l'NRS i GLIM segons el pes/IMC amb 1 clic o avaluar Sarcopènia (EWGSOP2).`;
-      quickActionBtnHtml = `
-        <button type="button" class="btn btn-sm btn-outline" id="wiz-banner-autoscore">⚡ Auto-ajustar per IMC/Pèrdua pes</button>
-        <button type="button" class="btn btn-sm btn-primary" id="wiz-banner-next">Pas 4: Objectius del Dia →</button>
-      `;
+      statusText = `NRS: ${m.nrs2002.total}/7 · NUTRIC: ${m.nutricScore.total}/9`;
+      actionHtml = `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-next">Següent →</button>`;
     } else if (scr === 4) {
-      promptHtml = `🎯 <strong>Pas 4 (Objectius Dia ${day.dayNumber}):</strong> Tria una de les 5 plantilles ràpides de fase clínica a sota o ajusta kcal/kg. Objectiu actual: <strong>${fmt(m.targets.energyKcal, 0)} kcal</strong> i <strong>${fmt(m.targets.proteinG, 1)} g Prot</strong>.`;
-      quickActionBtnHtml = `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-next">Confirmar i Escollir Vies →</button>`;
-    } else if (scr === 5) {
-      promptHtml = `💉 <strong>Pas 5 (No Nutricionals):</strong> Si el pacient porta Propofol, Sèrum Glucosat o Citrat TRRC, posa els ml/h. Si no en porta, salta directament a les vies nutricionals.`;
-      quickActionBtnHtml = `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-next">Continuar a Via Oral →</button>`;
-    } else if (scr === 6) {
-      promptHtml = `🍽️ <strong>Pas 6 (Via Oral):</strong> Marca <strong>SÍ</strong> o <strong>NO</strong>. Si marques NO, l'aplicació saltarà automàticament a Nutrició Enteral.`;
-      quickActionBtnHtml = `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-next">Següent: Nutrició Enteral →</button>`;
-    } else if (scr === 7) {
-      promptHtml = `🍼 <strong>Pas 7 (Nutrició Enteral):</strong> Marca SÍ si porta sonda i prem el botó <em>"⚡ Calcular Volum NE + Mòduls pel 100%"</em> perquè calculi sol els ml/h.`;
-      quickActionBtnHtml = `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-next">Següent: Parenteral →</button>`;
-    } else if (scr === 8) {
-      promptHtml = `💧 <strong>Pas 8 (Nutrició Parenteral):</strong> Marca SÍ només si necessita NP total o complementària. Si no en porta, passa directament a Monitorització.`;
-      quickActionBtnHtml = `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-next">Següent: Monitorització →</button>`;
+      statusText = `${fmt(m.targets.energyKcal, 0)} kcal · ${fmt(m.targets.proteinG, 1)} g Prot`;
+      actionHtml = `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-next">Següent →</button>`;
+    } else if (scr >= 5 && scr <= 8) {
+      statusText = `Aportat: ${fmt(m.totals.kcal, 0)} / ${fmt(m.targets.energyKcal, 0)} kcal (${fmt(m.totals.kcalAdequacyPct, 0)}%)`;
+      actionHtml = `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-next">Següent →</button>`;
     } else if (scr === 9) {
-      promptHtml = `🩺 <strong>Pas 9 (Monitorització GI i Metabòlica):</strong> Comprova tolerància GI i introdueix Glicèmia/Insulina o Urea/Creatinina si tens analítica d'avui.`;
-      quickActionBtnHtml = `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-next">Veure Balanç i Nota SAP (Pas 10) →</button>`;
+      statusText = `Tolerància GI i control metabòlic`;
+      actionHtml = `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-next">Veure Nota SAP →</button>`;
     } else if (scr === 10) {
-      promptHtml = `🎉 <strong>Pas 10 Completat!</strong> Cobertura assolida: <strong>${fmt(m.totals.kcalAdequacyPct, 0)}% d'Energia</strong> i <strong>${fmt(m.totals.proteinAdequacyPct, 0)}% de Proteïnes</strong>. Ja pots copiar la Nota pel Curs Clínic SAP!`;
-      quickActionBtnHtml = `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-copy">📋 Copiar Nota SAP</button>`;
+      statusText = `✅ Cobertura: ${fmt(m.totals.kcalAdequacyPct, 0)}% Kcal · ${fmt(m.totals.proteinAdequacyPct, 0)}% Prot`;
+      actionHtml = `<button type="button" class="btn btn-sm btn-primary" id="wiz-banner-copy">📋 Copiar Nota SAP</button>`;
     }
 
     banner.innerHTML = `
-      <div class="wizard-banner-top">
-        <div class="wizard-banner-title">
-          <span>🧭 Guia Pas a Pas · Pas ${scr} de 10 (${pct}%)</span>
+      <div class="wizard-banner-row">
+        <div class="wizard-banner-status">
+          <span>${stepNames[scr]}</span>
+          <span style="color:var(--text-muted); font-weight:600;">· ${statusText}</span>
         </div>
-        <button type="button" class="btn btn-sm header-btn-wizard" id="btn-banner-open-wizard" style="padding:4px 10px; font-size:11.5px;">
-          🪄 Mode Assistent Guiat (Pregunta a Pregunta)
-        </button>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="badge badge-info">${scr}/10</span>
+          ${actionHtml}
+        </div>
       </div>
       <div class="wizard-progress-track">
         <div class="wizard-progress-fill" style="width:${pct}%;"></div>
       </div>
-      <div class="wizard-banner-body">
-        <div class="wizard-banner-prompt">${promptHtml}</div>
-        <div class="wizard-banner-actions">${quickActionBtnHtml}</div>
-      </div>
     `;
 
-    document.getElementById("btn-banner-open-wizard")?.addEventListener("click", () => openWizardModal());
     document.getElementById("wiz-banner-demo")?.addEventListener("click", () => {
       document.getElementById("btn-load-demo-patient")?.click();
-    });
-    document.getElementById("wiz-banner-autoscore")?.addEventListener("click", () => {
-      autoFillScalesFromAnthro(patient, day, m);
-      saveState();
-      renderAll();
     });
     document.getElementById("wiz-banner-copy")?.addEventListener("click", () => {
       document.getElementById("btn-copy-note")?.click();
     });
     document.getElementById("wiz-banner-next")?.addEventListener("click", () => {
-      if (scr === 1) document.getElementById("btn-next-from-1")?.click();
-      else if (scr === 2) document.getElementById("btn-next-from-2")?.click();
-      else if (scr === 3) document.getElementById("btn-next-from-3")?.click();
-      else if (scr === 4) document.getElementById("btn-next-from-4")?.click();
-      else if (scr === 5) document.getElementById("btn-next-from-5")?.click();
-      else if (scr === 6) document.getElementById("btn-next-from-6")?.click();
-      else if (scr === 7) document.getElementById("btn-next-from-7")?.click();
-      else if (scr === 8) document.getElementById("btn-next-from-8")?.click();
-      else if (scr === 9) document.getElementById("btn-next-from-9")?.click();
-    });
-  }
-
-  function renderWizardModal(patient, day, m) {
-    const modal = document.getElementById("modal-wizard");
-    if (!modal || !modal.classList.contains("open")) return;
-
-    const progEl = document.getElementById("wizard-progress-header");
-    const bodyEl = document.getElementById("wizard-step-container");
-    const footEl = document.getElementById("wizard-modal-footer");
-    if (!progEl || !bodyEl || !footEl) return;
-
-    const step = Math.max(1, Math.min(7, state.wizardStep || 1));
-    const stepTitles = [
-      "1. Pacient",
-      "2. Talla i Pesos",
-      "3. Escales / Sarcopènia",
-      "4. Objectius (1 clic)",
-      "5. Vies Actives",
-      "6. Càlcul d'Aports",
-      "7. Nota Clínica SAP"
-    ];
-
-    progEl.innerHTML = `
-      <div class="wizard-steps-dots">
-        ${stepTitles
-          .map(
-            (t, idx) =>
-              `<div class="wiz-dot ${idx + 1 === step ? "active" : idx + 1 < step ? "done" : ""}" data-wiz-jump="${idx + 1}" title="${t}"></div>`
-          )
-          .join("")}
-      </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; font-weight:700; color:var(--text-muted);">
-        <span>Pas ${step} de 7 · ${stepTitles[step - 1]}</span>
-        <span>${patient.name || "Nou Malalt"} · Dia ${day.dayNumber} (${day.location})</span>
-      </div>
-    `;
-
-    progEl.querySelectorAll("[data-wiz-jump]").forEach((dot) => {
-      dot.addEventListener("click", () => {
-        state.wizardStep = Number(dot.getAttribute("data-wiz-jump"));
-        renderWizardModal(patient, day, m);
-      });
-    });
-
-    if (step === 1) {
-      bodyEl.innerHTML = `
-        <div class="wizard-question-box">
-          <div class="wizard-question-step">Pas 1 de 7 · Identificació Ràpida</div>
-          <div class="wizard-question-title">👤 Qui és el malalt i on està ingressat?</div>
-          <div class="wizard-question-sub">Respon aquestes dades bàsiques o carrega l'exemple amb un clic.</div>
-        </div>
-
-        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:10px; margin-bottom:12px;">
-          <div class="form-group">
-            <label>Nom / Box / Llit <span class="req-star">*</span></label>
-            <input type="text" id="wiz-inp-name" class="form-control" value="${patient.name || ""}" placeholder="Ex: Box 4 - Joan G.">
-          </div>
-          <div class="form-group">
-            <label>Edat (anys) <span class="req-star">*</span></label>
-            <input type="number" id="wiz-inp-age" class="form-control" value="${patient.age || ""}" min="15" max="115" placeholder="Ex: 65">
-          </div>
-        </div>
-
-        <div class="form-group" style="margin-bottom:12px;">
-          <label>Sexe Biològic (per a la fórmula de Pes Ideal Devine i talls EWGSOP2) <span class="req-star">*</span></label>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-            <button type="button" class="wizard-choice-btn ${patient.sex === "M" ? "selected" : ""}" data-wiz-sex="M">
-              <span class="wc-title">👨 Home</span>
-              <span class="wc-desc">PI Devine base 50 kg · Handgrip &lt;27 kg</span>
-            </button>
-            <button type="button" class="wizard-choice-btn ${patient.sex === "F" ? "selected" : ""}" data-wiz-sex="F">
-              <span class="wc-title">👩 Dona</span>
-              <span class="wc-desc">PI Devine base 45,5 kg · Handgrip &lt;16 kg</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="form-group" style="margin-bottom:12px;">
-          <label>Ubicació actual i condicions que adapten la dieta</label>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-            <button type="button" class="wizard-choice-btn ${day.location === "UCI" ? "selected" : ""}" data-wiz-loc="UCI">
-              <span class="wc-title">🏥 Unitat de Crítics (UCI)</span>
-              <span class="wc-desc">Monitorització d'estrès agut i aports IV</span>
-            </button>
-            <button type="button" class="wizard-choice-btn ${day.location === "PLANTA" ? "selected" : ""}" data-wiz-loc="PLANTA">
-              <span class="wc-title">🛏️ Planta d'Hospitalització</span>
-              <span class="wc-desc">Fase de recuperació i transició oral/enteral</span>
-            </button>
-          </div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-            <button type="button" class="wizard-choice-btn ${patient.diabetes ? "selected" : ""}" id="wiz-toggle-dm">
-              <span class="wc-title">${patient.diabetes ? "✅" : "⬜"} Diabetis / Hiperglicèmia</span>
-              <span class="wc-desc">Prioritza fórmules Glucerna / Diabètica</span>
-            </button>
-            <button type="button" class="wizard-choice-btn ${patient.dysphagia ? "selected" : ""}" id="wiz-toggle-dys">
-              <span class="wc-title">${patient.dysphagia ? "✅" : "⬜"} Disfàgia Orofaríngia</span>
-              <span class="wc-desc">Adapta a dieta pastosa i cremes espessides</span>
-            </button>
-          </div>
-        </div>
-      `;
-
-      bodyEl.querySelector("#wiz-inp-name")?.addEventListener("input", (e) => {
-        patient.name = e.target.value;
-        saveState();
-      });
-      bodyEl.querySelector("#wiz-inp-age")?.addEventListener("input", (e) => {
-        patient.age = Number(e.target.value) || null;
-        saveState();
-      });
-      bodyEl.querySelectorAll("[data-wiz-sex]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          patient.sex = btn.getAttribute("data-wiz-sex");
-          saveState();
-          renderAll();
-        });
-      });
-      bodyEl.querySelectorAll("[data-wiz-loc]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          day.location = btn.getAttribute("data-wiz-loc");
-          saveState();
-          renderAll();
-        });
-      });
-      bodyEl.querySelector("#wiz-toggle-dm")?.addEventListener("click", () => {
-        patient.diabetes = !patient.diabetes;
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-toggle-dys")?.addEventListener("click", () => {
-        patient.dysphagia = !patient.dysphagia;
-        saveState();
-        renderAll();
-      });
-    } else if (step === 2) {
-      bodyEl.innerHTML = `
-        <div class="wizard-question-box">
-          <div class="wizard-question-step">Pas 2 de 7 · Antropometria i Realimentació</div>
-          <div class="wizard-question-title">📏 Quina és la talla, el pes i el fosfat?</div>
-          <div class="wizard-question-sub">Calcularem automàticament l'IMC, el Pes Ideal, el Pes Ajustat (si IMC &gt; 30) i el risc de Refeeding.</div>
-        </div>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;">
-          <div class="form-group">
-            <label>Talla (cm) <span class="req-star">*</span></label>
-            <input type="number" id="wiz-inp-height" class="form-control" value="${patient.heightCm || ""}" min="120" max="220" placeholder="Ex: 165">
-          </div>
-          <div class="form-group">
-            <label>Pes Actual / Ingrés (kg) <span class="req-star">*</span></label>
-            <input type="number" id="wiz-inp-adm-weight" class="form-control" value="${patient.admissionWeightKg || ""}" min="25" max="260" step="0.5" placeholder="Ex: 75">
-          </div>
-          <div class="form-group">
-            <label>Pes Habitual fa 3-6m (kg) <span class="req-star">*</span></label>
-            <input type="number" id="wiz-inp-hab-weight" class="form-control" value="${patient.habitualWeightKg || ""}" min="25" max="260" step="0.5" placeholder="Ex: 80">
-          </div>
-          <div class="form-group">
-            <label>Fosfat sèric ingrés (mg/dL)</label>
-            <input type="number" id="wiz-inp-phos" class="form-control" value="${patient.admissionPhosphateMgDl ?? 2.8}" min="0.4" max="10" step="0.1">
-          </div>
-        </div>
-
-        <div class="score-result-banner ${m.refeedingRisk.level === "ALT" ? "high-risk" : "low-risk"}">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-            <div><strong>PES DE TREBALL CALCULAT: ${fmt(m.anthropometry.workWeight, 1)} kg</strong> (${m.anthropometry.isObeseAdjusted ? "Pes Ajustat per Obesitat IMC>30" : "Pes Actual"})</div>
-            <span class="badge ${m.refeedingRisk.badgeClass}">Risc Refeeding: ${m.refeedingRisk.level}</span>
-          </div>
-          <div style="font-size:12px; margin-top:4px;">
-            IMC: <strong>${fmt(m.anthropometry.bmi, 1)} kg/m²</strong> · Pes Ideal: <strong>${fmt(m.anthropometry.idealWeight, 1)} kg</strong> ·
-            ${m.anthropometry.weightLossPct > 0 ? `Pèrdua de pes: <strong>-${fmt(m.anthropometry.weightLossPct, 1)}%</strong>` : "Sense pèrdua de pes"}
-          </div>
-        </div>
-      `;
-
-      const bindWizNum = (selId, prop, syncActual = false) => {
-        bodyEl.querySelector(selId)?.addEventListener("input", (e) => {
-          patient[prop] = Number(e.target.value) || null;
-          if (syncActual && patient[prop] > 0) day.actualWeightKg = patient[prop];
-          saveState();
-          const newM = computeMetrics(patient, day);
-          renderTopContextBar(patient, day, newM);
-          renderWizardBanner(patient, day, newM);
-        });
-        bodyEl.querySelector(selId)?.addEventListener("change", () => renderAll());
-      };
-      bindWizNum("#wiz-inp-height", "heightCm", false);
-      bindWizNum("#wiz-inp-adm-weight", "admissionWeightKg", true);
-      bindWizNum("#wiz-inp-hab-weight", "habitualWeightKg", false);
-      bindWizNum("#wiz-inp-phos", "admissionPhosphateMgDl", false);
-    } else if (step === 3) {
-      bodyEl.innerHTML = `
-        <div class="wizard-question-box">
-          <div class="wizard-question-step">Pas 3 de 7 · Escales de Risc, GLIM i Sarcopènia</div>
-          <div class="wizard-question-title">📊 Cribratge Nutricional i Muscular</div>
-          <div class="wizard-question-sub">Prem el botó d'auto-càlcul per omplir les escales a partir de l'IMC i la pèrdua de pes, o ajusta-les manualment.</div>
-        </div>
-
-        <button type="button" class="btn btn-sm btn-secondary" id="wiz-btn-autoscale" style="width:100%; justify-content:center; margin-bottom:12px; padding:9px;">
-          ⚡ Auto-calcular NRS-2002 i GLIM segons IMC (${fmt(m.anthropometry.bmi, 1)}) i Pèrdua de Pes (${fmt(m.anthropometry.weightLossPct, 1)}%)
-        </button>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
-          <div class="form-group">
-            <label>NRS-2002 Estat Nutricional (0-3)</label>
-            <select id="wiz-sel-nrs-nutr" class="form-control">
-              <option value="0" ${patient.nrsNutritionalScore === 0 ? "selected" : ""}>0 · Normal</option>
-              <option value="1" ${patient.nrsNutritionalScore === 1 ? "selected" : ""}>1 · Lleu (&gt;5% en 3m)</option>
-              <option value="2" ${patient.nrsNutritionalScore === 2 ? "selected" : ""}>2 · Moderat (&gt;5% en 2m)</option>
-              <option value="3" ${patient.nrsNutritionalScore === 3 ? "selected" : ""}>3 · Greu (&gt;5% 1m / IMC&lt;18.5)</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>NRS-2002 Gravetat Malaltia (0-3)</label>
-            <select id="wiz-sel-nrs-dis" class="form-control">
-              <option value="0" ${patient.nrsDiseaseScore === 0 ? "selected" : ""}>0 · Normal</option>
-              <option value="1" ${patient.nrsDiseaseScore === 1 ? "selected" : ""}>1 · Planta / Crònic</option>
-              <option value="2" ${patient.nrsDiseaseScore === 2 ? "selected" : ""}>2 · Cirurgia major / Pneumònia</option>
-              <option value="3" ${patient.nrsDiseaseScore === 3 ? "selected" : ""}>3 · Pacient Crític UCI</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>mNUTRIC APACHE II</label>
-            <select id="wiz-sel-apache" class="form-control">
-              <option value="0" ${patient.nutricApache === 0 ? "selected" : ""}>&lt; 15 (0 pts)</option>
-              <option value="1" ${patient.nutricApache === 1 ? "selected" : ""}>15 - 19 (1 pt)</option>
-              <option value="2" ${patient.nutricApache === 2 ? "selected" : ""}>20 - 27 (2 pts)</option>
-              <option value="3" ${patient.nutricApache === 3 ? "selected" : ""}>≥ 28 (3 pts)</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>mNUTRIC SOFA</label>
-            <select id="wiz-sel-sofa" class="form-control">
-              <option value="0" ${patient.nutricSofa === 0 ? "selected" : ""}>&lt; 6 (0 pts)</option>
-              <option value="1" ${patient.nutricSofa === 1 ? "selected" : ""}>6 - 9 (1 pt)</option>
-              <option value="2" ${patient.nutricSofa === 2 ? "selected" : ""}>≥ 10 (2 pts)</option>
-            </select>
-          </div>
-        </div>
-
-        <div style="background:var(--surface-alt); border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:10px;">
-          <label style="font-size:12px; font-weight:800; display:block; margin-bottom:8px;">💪 Valoració ràpida de Sarcopènia (EWGSOP2) i Massa Muscular (GLIM):</label>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-            <div class="form-group">
-              <label style="font-size:11px;">Dinamometria mà (kg) [Tall &lt;${m.ewgsop2.handgripCutoff}kg]</label>
-              <input type="number" id="wiz-inp-grip" class="form-control" value="${patient.ewgsopHandgripKg ?? ""}" step="0.5" placeholder="Opcional (kg)">
-            </div>
-            <div class="form-group">
-              <label style="font-size:11px;">Perímetre panxell (cm) [Tall &lt;31cm]</label>
-              <input type="number" id="wiz-inp-calf" class="form-control" value="${patient.ewgsopCalfCm ?? ""}" step="0.5" placeholder="Opcional (cm)">
-            </div>
-          </div>
-          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
-            <button type="button" class="wizard-choice-btn ${!patient.ewgsopEnabled ? "selected" : ""}" data-wiz-sarc="none">
-              <span class="wc-title">🟢 Conservada</span>
-              <span class="wc-desc">Sense sarcopènia</span>
-            </button>
-            <button type="button" class="wizard-choice-btn ${patient.ewgsopEnabled && patient.ewgsopStrengthStatus === "low" && patient.ewgsopMassStatus !== "low" ? "selected" : ""}" data-wiz-sarc="probable">
-              <span class="wc-title">🟡 Probable</span>
-              <span class="wc-desc">Baixa força (Criteri 1)</span>
-            </button>
-            <button type="button" class="wizard-choice-btn ${patient.ewgsopEnabled && patient.ewgsopStrengthStatus === "low" && patient.ewgsopMassStatus === "low" ? "selected" : ""}" data-wiz-sarc="confirmed">
-              <span class="wc-title">🔴 Confirmada</span>
-              <span class="wc-desc">Baixa força + massa</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="score-result-banner ${m.nrs2002.isHighRisk || m.nutricScore.isHighRisk ? "high-risk" : "low-risk"}">
-          <strong>Resum Cribratge:</strong> NRS-2002: <strong>${m.nrs2002.total}/7</strong> (${m.nrs2002.riskLabel}) · mNUTRIC: <strong>${m.nutricScore.total}/9</strong> (${m.nutricScore.riskLabel})
-          ${m.glim.glimEnabled ? `<br><strong>GLIM:</strong> ${m.glim.diagnosisLabel}` : ""}
-          ${m.ewgsop2.ewgsopEnabled ? `<br><strong>EWGSOP2:</strong> ${m.ewgsop2.diagnosisLabel}` : ""}
-        </div>
-      `;
-
-      bodyEl.querySelector("#wiz-btn-autoscale")?.addEventListener("click", () => {
-        autoFillScalesFromAnthro(patient, day, m);
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-sel-nrs-nutr")?.addEventListener("change", (e) => {
-        patient.nrsNutritionalScore = Number(e.target.value);
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-sel-nrs-dis")?.addEventListener("change", (e) => {
-        patient.nrsDiseaseScore = Number(e.target.value);
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-sel-apache")?.addEventListener("change", (e) => {
-        patient.nutricApache = Number(e.target.value);
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-sel-sofa")?.addEventListener("change", (e) => {
-        patient.nutricSofa = Number(e.target.value);
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-inp-grip")?.addEventListener("change", (e) => {
-        patient.ewgsopHandgripKg = numOrNull(e.target.value);
-        if (patient.ewgsopHandgripKg !== null) patient.ewgsopEnabled = true;
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-inp-calf")?.addEventListener("change", (e) => {
-        patient.ewgsopCalfCm = numOrNull(e.target.value);
-        if (patient.ewgsopCalfCm !== null) patient.ewgsopEnabled = true;
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelectorAll("[data-wiz-sarc]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const mode = btn.getAttribute("data-wiz-sarc");
-          if (mode === "none") {
-            patient.ewgsopEnabled = false;
-            patient.ewgsopStrengthStatus = "normal";
-            patient.ewgsopMassStatus = "normal";
-          } else if (mode === "probable") {
-            patient.ewgsopEnabled = true;
-            patient.ewgsopClinicalSuspicion = true;
-            patient.ewgsopStrengthStatus = "low";
-            patient.ewgsopMassStatus = "normal";
-            patient.glimEnabled = true;
-            patient.glimPhenoMuscle = "moderate";
-          } else if (mode === "confirmed") {
-            patient.ewgsopEnabled = true;
-            patient.ewgsopClinicalSuspicion = true;
-            patient.ewgsopStrengthStatus = "low";
-            patient.ewgsopMassStatus = "low";
-            patient.glimEnabled = true;
-            patient.glimPhenoMuscle = "severe";
-          }
-          saveState();
-          renderAll();
-        });
-      });
-    } else if (step === 4) {
-      const recPhase =
-        m.refeedingRisk.level === "ALT"
-          ? "refeed_d1"
-          : day.location === "PLANTA"
-          ? "planta_anabolic"
-          : m.ewgsop2.lowStrength
-          ? "uci_trrc"
-          : day.dayNumber <= 2
-          ? "uci_early"
-          : "uci_stable";
-
-      bodyEl.innerHTML = `
-        <div class="wizard-question-box">
-          <div class="wizard-question-step">Pas 4 de 7 · Objectius Nutricionals en 1 Clic</div>
-          <div class="wizard-question-title">🎯 En quina fase clínica es troba avui (Dia ${day.dayNumber})?</div>
-          <div class="wizard-question-sub">Toca una plantilla per configurar automàticament energia i proteïnes segons el Pes de Treball (${fmt(m.anthropometry.workWeight, 1)} kg).</div>
-        </div>
-
-        <div class="wizard-choice-grid" style="grid-template-columns:1fr; margin-bottom:14px;">
-          <button type="button" class="wizard-choice-btn ${day.kcalPerKgTarget === 10 ? "selected" : ""}" data-wiz-phase="refeed_d1">
-            <span class="wc-title">🚨 Risc Síndrome Realimentació · Inici Prudencial (10 kcal/kg · 1,0 g Prot/kg) ${recPhase === "refeed_d1" ? '<span class="badge badge-danger">Recomanat</span>' : ""}</span>
-            <span class="wc-desc">Resultat: <strong>${fmt(m.anthropometry.workWeight * 10, 0)} kcal/dia</strong> i <strong>${fmt(m.anthropometry.workWeight * 1.0, 1)} g Proteïna/dia</strong> + Tiamina 200-300 mg IV</span>
-          </button>
-
-          <button type="button" class="wizard-choice-btn ${day.kcalPerKgTarget === 15 ? "selected" : ""}" data-wiz-phase="uci_early">
-            <span class="wc-title">🏥 UCI Fase Aguda Precoç · Dies 1-3 (15 kcal/kg · 1,2 g Prot/kg) ${recPhase === "uci_early" ? '<span class="badge badge-info">Recomanat</span>' : ""}</span>
-            <span class="wc-desc">Resultat: <strong>${fmt(m.anthropometry.workWeight * 15, 0)} kcal/dia</strong> i <strong>${fmt(m.anthropometry.workWeight * 1.2, 1)} g Proteïna/dia</strong> (Hipocalòrica segura inicial)</span>
-          </button>
-
-          <button type="button" class="wizard-choice-btn ${day.kcalPerKgTarget === 20 ? "selected" : ""}" data-wiz-phase="uci_stable">
-            <span class="wc-title">⚖️ UCI Fase d'Estabilització · Dia 4+ (20 kcal/kg · 1,5 g Prot/kg) ${recPhase === "uci_stable" ? '<span class="badge badge-success">Recomanat</span>' : ""}</span>
-            <span class="wc-desc">Resultat: <strong>${fmt(m.anthropometry.workWeight * 20, 0)} kcal/dia</strong> i <strong>${fmt(m.anthropometry.workWeight * 1.5, 1)} g Proteïna/dia</strong> (Objectiu estàndard UCI)</span>
-          </button>
-
-          <button type="button" class="wizard-choice-btn ${day.kcalPerKgTarget === 25 ? "selected" : ""}" data-wiz-phase="uci_trrc">
-            <span class="wc-title">🔥 UCI Hipercatabòlic / TRRC / Sarcopènia (25 kcal/kg · 1,8 g Prot/kg) ${recPhase === "uci_trrc" ? '<span class="badge badge-warning">Recomanat</span>' : ""}</span>
-            <span class="wc-desc">Resultat: <strong>${fmt(m.anthropometry.workWeight * 25, 0)} kcal/dia</strong> i <strong>${fmt(m.anthropometry.workWeight * 1.8, 1)} g Proteïna/dia</strong> (Alt requeriment proteic)</span>
-          </button>
-
-          <button type="button" class="wizard-choice-btn ${day.kcalPerKgTarget === 30 ? "selected" : ""}" data-wiz-phase="planta_anabolic">
-            <span class="wc-title">🛏️ Planta d'Hospitalització / Fase Anabòlica (30 kcal/kg · 1,8 g Prot/kg) ${recPhase === "planta_anabolic" ? '<span class="badge badge-info">Recomanat</span>' : ""}</span>
-            <span class="wc-desc">Resultat: <strong>${fmt(m.anthropometry.workWeight * 30, 0)} kcal/dia</strong> i <strong>${fmt(m.anthropometry.workWeight * 1.8, 1)} g Proteïna/dia</strong> (Recuperació funcional i muscular)</span>
-          </button>
-        </div>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; background:var(--surface-alt); padding:10px; border-radius:8px; border:1px solid var(--border);">
-          <div class="form-group">
-            <label>Ajust fi Energia (kcal/kg/d) → <strong>${fmt(m.targets.energyKcal, 0)} kcal</strong></label>
-            <input type="number" id="wiz-inp-kcal-kg" class="form-control" value="${day.kcalPerKgTarget}" min="5" max="45" step="1">
-          </div>
-          <div class="form-group">
-            <label>Ajust fi Proteïnes (g/kg/d) → <strong>${fmt(m.targets.proteinG, 1)} g</strong></label>
-            <input type="number" id="wiz-inp-prot-kg" class="form-control" value="${day.proteinPerKgTarget}" min="0.5" max="3.0" step="0.1">
-          </div>
-        </div>
-      `;
-
-      bodyEl.querySelectorAll("[data-wiz-phase]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const key = btn.getAttribute("data-wiz-phase");
-          const targetBtn = document.querySelector(`[data-preset-phase="${key}"]`);
-          if (targetBtn) targetBtn.click();
-          day.objectivesCompleted = true;
-          saveState();
-          renderAll();
-        });
-      });
-      bodyEl.querySelector("#wiz-inp-kcal-kg")?.addEventListener("change", (e) => {
-        day.kcalPerKgTarget = Number(e.target.value) || 20;
-        day.objectivesCompleted = true;
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-inp-prot-kg")?.addEventListener("change", (e) => {
-        day.proteinPerKgTarget = Number(e.target.value) || 1.5;
-        day.objectivesCompleted = true;
-        saveState();
-        renderAll();
-      });
-    } else if (step === 5) {
-      const hasNonNutr = m.nonNutr.kcal > 0 || Boolean(day._wizShowNonNutr);
-      bodyEl.innerHTML = `
-        <div class="wizard-question-box">
-          <div class="wizard-question-step">Pas 5 de 7 · Selecció de Vies d'Administració</div>
-          <div class="wizard-question-title">🔀 Quines vies rep el pacient avui?</div>
-          <div class="wizard-question-sub">Activa només les vies que utilitzi avui. Les que deixis en "NO" s'ometran automàticament al pas següent!</div>
-        </div>
-
-        <div class="wizard-route-toggle ${hasNonNutr ? "active" : ""}" id="wiz-rt-nonnutr">
-          <div>
-            <div style="font-weight:800; font-size:14px;">💉 Perfusions No Nutricionals (Propofol, SG, Citrat TRRC)</div>
-            <div style="font-size:12px; color:var(--text-muted);">Calories ocultes de sedació, sèrums glucosats o anticoagulació</div>
-          </div>
-          <span class="badge ${hasNonNutr ? "badge-success" : "badge-info"}" style="font-size:12.5px; padding:6px 12px;">${hasNonNutr ? "SÍ · Actiu" : "NO"}</span>
-        </div>
-
-        <div class="wizard-route-toggle ${day.oralActive ? "active" : ""}" id="wiz-rt-oral">
-          <div>
-            <div style="font-weight:800; font-size:14px;">🍽️ Via Oral (Safata Hospitalària ± Suplements Orals)</div>
-            <div style="font-size:12px; color:var(--text-muted);">1a via d'elecció si deglució segura</div>
-          </div>
-          <span class="badge ${day.oralActive ? "badge-success" : "badge-info"}" style="font-size:12.5px; padding:6px 12px;">${day.oralActive ? "SÍ · Activa" : "NO"}</span>
-        </div>
-
-        <div class="wizard-route-toggle ${day.neActive ? "active" : ""}" id="wiz-rt-ne">
-          <div>
-            <div style="font-weight:800; font-size:14px;">🍼 Nutrició Enteral per Sonda (NE ± Mòduls Proteics)</div>
-            <div style="font-size:12px; color:var(--text-muted);">Sonda nasogàstrica / nasojejunal / PEG</div>
-          </div>
-          <span class="badge ${day.neActive ? "badge-success" : "badge-info"}" style="font-size:12.5px; padding:6px 12px;">${day.neActive ? "SÍ · Activa" : "NO"}</span>
-        </div>
-
-        <div class="wizard-route-toggle ${day.npActive ? "active" : ""}" id="wiz-rt-np">
-          <div>
-            <div style="font-weight:800; font-size:14px;">💧 Nutrició Parenteral (NP Total o Complementària)</div>
-            <div style="font-size:12px; color:var(--text-muted);">Via venosa central o perifèrica</div>
-          </div>
-          <span class="badge ${day.npActive ? "badge-success" : "badge-info"}" style="font-size:12.5px; padding:6px 12px;">${day.npActive ? "SÍ · Activa" : "NO"}</span>
-        </div>
-      `;
-
-      bodyEl.querySelector("#wiz-rt-nonnutr")?.addEventListener("click", () => {
-        if (hasNonNutr) {
-          day._wizShowNonNutr = false;
-          document.getElementById("btn-clear-non-nutr")?.click();
-        } else {
-          day._wizShowNonNutr = true;
-        }
-        day.nonNutrEvaluated = true;
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-rt-oral")?.addEventListener("click", () => {
-        day.oralActive = !day.oralActive;
-        day.oralEvaluated = true;
-        if (day.oralActive) {
-          if (patient.dysphagia && day.oralDietName === "SEMILIQUIDA") day.oralDietName = "BASAL PASTOSA";
-          else if (patient.diabetes && day.oralDietName === "SEMILIQUIDA") day.oralDietName = "DIABÈTICA 1500";
-        }
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-rt-ne")?.addEventListener("click", () => {
-        day.neActive = !day.neActive;
-        day.neEvaluated = true;
-        if (day.neActive && (!day.neVolume24hMl || day.neVolume24hMl === 0)) {
-          if (patient.diabetes) day.neFormulaId = "glucerna_1_5";
-          day.neVolume24hMl = 1000;
-        }
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-rt-np")?.addEventListener("click", () => {
-        day.npActive = !day.npActive;
-        day.npEvaluated = true;
-        saveState();
-        renderAll();
-      });
-    } else if (step === 6) {
-      const showNonNutr = m.nonNutr.kcal > 0 || Boolean(day._wizShowNonNutr);
-      const anyRoute = showNonNutr || day.oralActive || day.neActive || day.npActive;
-
-      let blocksHtml = "";
-      if (!anyRoute) {
-        blocksHtml = `
-          <div class="alert-box alert-warning">
-            ⚠️ No has activat cap via al pas anterior (Pacient en dejuni absolut / dieta zero). Pots tornar al Pas 5 per activar Via Oral, Enteral o Parenteral, o continuar al Pas 7.
-          </div>
-        `;
-      }
-
-      if (showNonNutr) {
-        blocksHtml += `
-          <div style="border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:12px; background:var(--surface-alt);">
-            <div style="font-weight:800; font-size:13.5px; margin-bottom:8px; color:var(--primary-dark);">💉 1. Perfusions No Nutricionals (+${fmt(m.nonNutr.kcal, 0)} kcal)</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-              <div class="form-group">
-                <label style="font-size:11px;">Propofol 2% (ml/h)</label>
-                <input type="number" id="wiz-prop-rate" class="form-control" value="${day.propofolRateMlH || 0}" min="0" step="1">
-              </div>
-              <div class="form-group">
-                <label style="font-size:11px;">SG 5% (ml/h)</label>
-                <input type="number" id="wiz-sg-rate" class="form-control" value="${day.sgRateMlH || 0}" min="0" step="5">
-              </div>
-              <div class="form-group">
-                <label style="font-size:11px;">Citrat TRRC (ml/h)</label>
-                <input type="number" id="wiz-cit-rate" class="form-control" value="${day.citrateRateMlH || 0}" min="0" step="10">
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      if (day.oralActive) {
-        const curPct = Math.round(m.oralTray.globalEatenPct);
-        blocksHtml += `
-          <div style="border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:12px; background:var(--surface-alt);">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
-              <strong style="font-size:13.5px; color:var(--primary-dark);">🍽️ Via Oral (+${fmt(m.oralTray.kcal + m.supplements.kcal, 0)} kcal · +${fmt(m.oralTray.proteinG + m.supplements.proteinG, 1)}g Prot)</strong>
-              <button type="button" class="btn btn-sm btn-secondary" id="wiz-btn-autosupp">⚡ Cobrir dèficit amb Suplement</button>
-            </div>
-            <div class="form-group" style="margin-bottom:8px;">
-              <label style="font-size:11.5px;">Dieta Hospitalària</label>
-              <select id="wiz-sel-diet" class="form-control">
-                ${window.HUMT_DATA.hospitalDiets
-                  .map(
-                    (d) =>
-                      `<option value="${d.name}" ${d.name === day.oralDietName ? "selected" : ""}>${d.name} (${fmt(d.kcal, 0)} kcal · ${fmt(d.protein, 1)}g Prot)</option>`
-                  )
-                  .join("")}
-              </select>
-            </div>
-            <label style="font-size:11.5px; font-weight:700; display:block; margin-bottom:4px;">Quant ha menjat de la safata avui? (${curPct}%)</label>
-            <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:6px;">
-              ${[0, 0.25, 0.5, 0.75, 1].map((v) => `<button type="button" class="btn btn-sm ${Math.abs(curPct - v * 100) < 5 ? "btn-primary" : "btn-outline"}" data-wiz-tray="${v}">${v * 100}%</button>`).join("")}
-            </div>
-          </div>
-        `;
-      }
-
-      if (day.neActive) {
-        blocksHtml += `
-          <div style="border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:12px; background:var(--surface-alt);">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
-              <strong style="font-size:13.5px; color:var(--primary-dark);">🍼 Nutrició Enteral (+${fmt(m.ne.kcal, 0)} kcal · +${fmt(m.ne.proteinG, 1)}g Prot)</strong>
-              <button type="button" class="btn btn-sm btn-primary" id="wiz-btn-autone">⚡ Auto-calcular pel 100% Objectiu</button>
-            </div>
-            <div style="display:grid; grid-template-columns:1.5fr 1fr; gap:8px;">
-              <div class="form-group">
-                <label style="font-size:11.5px;">Fórmula Enteral</label>
-                <select id="wiz-sel-ne" class="form-control">
-                  ${window.HUMT_DATA.enteralFormulas
-                    .map(
-                      (f) =>
-                        `<option value="${f.id}" ${f.id === day.neFormulaId ? "selected" : ""}>${f.name} (${f.per100ml.kcal} kcal/ml)</option>`
-                    )
-                    .join("")}
-                </select>
-              </div>
-              <div class="form-group">
-                <label style="font-size:11.5px;">Volum 24h (ml) [${fmt(m.ne.rateMlHr24, 1)} ml/h]</label>
-                <input type="number" id="wiz-inp-ne-vol" class="form-control" value="${day.neVolume24hMl || 0}" step="50" min="0" max="3000">
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      if (day.npActive) {
-        blocksHtml += `
-          <div style="border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:12px; background:var(--surface-alt);">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
-              <strong style="font-size:13.5px; color:var(--primary-dark);">💧 Nutrició Parenteral (+${fmt(m.np.kcal, 0)} kcal · +${fmt(m.np.proteinG, 1)}g Prot)</strong>
-              <button type="button" class="btn btn-sm btn-primary" id="wiz-btn-autonp">⚡ Auto-ajustar NP pel dèficit</button>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-              <div class="form-group">
-                <label style="font-size:11px;">Aminoàcids (g)</label>
-                <input type="number" id="wiz-np-prot" class="form-control" value="${day.npAminovenG || 0}" step="5">
-              </div>
-              <div class="form-group">
-                <label style="font-size:11px;">Glucosa (g)</label>
-                <input type="number" id="wiz-np-gluc" class="form-control" value="${day.npGlucoseG || 0}" step="10">
-              </div>
-              <div class="form-group">
-                <label style="font-size:11px;">Lípids (g)</label>
-                <input type="number" id="wiz-np-lip" class="form-control" value="${day.npSmoflipidG || 0}" step="5">
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      bodyEl.innerHTML = `
-        <div class="wizard-question-box">
-          <div class="wizard-question-step">Pas 6 de 7 · Quantitats i Càlcul Automàtic</div>
-          <div class="wizard-question-title">⚡ Ajusta o auto-calcula els aports</div>
-          <div class="wizard-question-sub">Utilitza els botons d'auto-càlcul per clavar el 100% de l'objectiu d'energia i proteïnes en 1 clic.</div>
-        </div>
-
-        <div class="score-result-banner ${m.totals.kcalAdequacyPct >= 80 && m.totals.kcalAdequacyPct <= 110 ? "low-risk" : "moderate-risk"}" style="margin-bottom:12px;">
-          <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px;">
-            <span><strong>Energia:</strong> ${fmt(m.totals.kcal, 0)} / ${fmt(m.targets.energyKcal, 0)} kcal (<strong>${fmt(m.totals.kcalAdequacyPct, 0)}%</strong>)</span>
-            <span><strong>Proteïnes:</strong> ${fmt(m.totals.proteinG, 1)} / ${fmt(m.targets.proteinG, 1)} g (<strong>${fmt(m.totals.proteinAdequacyPct, 0)}%</strong>)</span>
-          </div>
-        </div>
-
-        ${blocksHtml}
-      `;
-
-      bodyEl.querySelector("#wiz-prop-rate")?.addEventListener("change", (e) => {
-        day.propofolConcentration = 0.2;
-        day.propofolRateMlH = Number(e.target.value) || 0;
-        day.propofolVolumeMl = Math.round(day.propofolRateMlH * (day.propofolHours || 24));
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-sg-rate")?.addEventListener("change", (e) => {
-        day.sgRateMlH = Number(e.target.value) || 0;
-        day.sgVolumeMl = Math.round(day.sgRateMlH * (day.sgHours || 24));
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-cit-rate")?.addEventListener("change", (e) => {
-        day.citrateRateMlH = Number(e.target.value) || 0;
-        day.citrateVolumeMl = Math.round(day.citrateRateMlH * (day.citrateHours || 24));
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-sel-diet")?.addEventListener("change", (e) => {
-        day.oralDietName = e.target.value;
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelectorAll("[data-wiz-tray]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const pct = Number(btn.getAttribute("data-wiz-tray"));
-          ["breakfast", "lunch", "snack", "dinner"].forEach((k) => {
-            if (day.meals[k]) day.meals[k].eatenPct = pct;
-          });
-          saveState();
-          renderAll();
-        });
-      });
-      bodyEl.querySelector("#wiz-btn-autosupp")?.addEventListener("click", () => {
-        document.getElementById("btn-auto-suggest-supp")?.click();
-      });
-      bodyEl.querySelector("#wiz-sel-ne")?.addEventListener("change", (e) => {
-        day.neFormulaId = e.target.value;
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-inp-ne-vol")?.addEventListener("change", (e) => {
-        day.neVolume24hMl = Number(e.target.value) || 0;
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-btn-autone")?.addEventListener("click", () => {
-        document.getElementById("btn-auto-ne-card")?.click();
-      });
-      bodyEl.querySelector("#wiz-btn-autonp")?.addEventListener("click", () => {
-        document.getElementById("btn-auto-np")?.click();
-      });
-      bodyEl.querySelector("#wiz-np-prot")?.addEventListener("change", (e) => {
-        day.npAminovenG = Number(e.target.value) || 0;
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-np-gluc")?.addEventListener("change", (e) => {
-        day.npGlucoseG = Number(e.target.value) || 0;
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-np-lip")?.addEventListener("change", (e) => {
-        day.npSmoflipidG = Number(e.target.value) || 0;
-        saveState();
-        renderAll();
-      });
-    } else if (step === 7) {
-      const giNormal = (day.giVrgMl || 0) < 200 && day.giVomiting === "no" && (day.giDiarrheaCount || 0) < 3 && day.giDistension === "normal";
-      const noteText = buildClinicalNoteText(patient, day, m);
-
-      bodyEl.innerHTML = `
-        <div class="wizard-question-box">
-          <div class="wizard-question-step">Pas 7 de 7 · Tolerància, Analítica i Nota SAP</div>
-          <div class="wizard-question-title">✅ Revisió Final i Nota pel Curs Clínic</div>
-          <div class="wizard-question-sub">Confirma la tolerància GI, afegeix glicèmia/urea si en tens i copia la nota clínica llesta per a SAP/HCIS.</div>
-        </div>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
-          <button type="button" class="wizard-choice-btn ${giNormal ? "selected" : ""}" id="wiz-gi-ok">
-            <span class="wc-title">✅ Bona Tolerància GI</span>
-            <span class="wc-desc">VRG &lt; 200 ml, sense vòmits ni diarrea, abdomen tou</span>
-          </button>
-          <button type="button" class="wizard-choice-btn ${!giNormal ? "selected" : ""}" id="wiz-gi-issue">
-            <span class="wc-title">⚠️ Intolerància / Incidència GI</span>
-            <span class="wc-desc">Obrir detall de VRG, vòmits, diarrea o restrenyiment</span>
-          </button>
-        </div>
-
-        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:12px; background:var(--surface-alt); padding:10px; border-radius:8px; border:1px solid var(--border);">
-          <div class="form-group">
-            <label style="font-size:10.5px;">Glicèmia mitj. (mg/dL)</label>
-            <input type="number" id="wiz-inp-gly" class="form-control" value="${day.glyMean ?? ""}" placeholder="Ex: 135">
-          </div>
-          <div class="form-group">
-            <label style="font-size:10.5px;">Insulina 24h (UI)</label>
-            <input type="number" id="wiz-inp-ins" class="form-control" value="${day.insulin24h ?? ""}" placeholder="Ex: 24">
-          </div>
-          <div class="form-group">
-            <label style="font-size:10.5px;">Urea sang (mg/dL)</label>
-            <input type="number" id="wiz-inp-urea" class="form-control" value="${day.labUreaPlasma ?? ""}" placeholder="Ex: 65">
-          </div>
-          <div class="form-group">
-            <label style="font-size:10.5px;">Creatinina (mg/dL)</label>
-            <input type="number" id="wiz-inp-cr" class="form-control" value="${day.labCreatinine ?? ""}" step="0.1" placeholder="Ex: 0.9">
-          </div>
-        </div>
-
-        <div style="margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
-          <strong style="font-size:12.5px; color:var(--primary-dark);">📝 Nota pel Curs Clínic (SAP / HCIS):</strong>
-          <button type="button" class="btn btn-sm btn-primary" id="wiz-btn-copy-note">📋 Copiar Nota Clínica</button>
-        </div>
-        <textarea class="clinical-note-box" style="min-height:145px; font-size:11.5px;" readonly>${noteText}</textarea>
-      `;
-
-      bodyEl.querySelector("#wiz-gi-ok")?.addEventListener("click", () => {
-        day.giVrgMl = 0;
-        day.giVomiting = "no";
-        day.giDiarrheaCount = 0;
-        day.giDistension = "normal";
-        day.monitoringVisited = true;
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-gi-issue")?.addEventListener("click", () => {
-        modal.classList.remove("open");
-        goToScreen(9);
-      });
-      bodyEl.querySelector("#wiz-inp-gly")?.addEventListener("change", (e) => {
-        day.glyMean = numOrNull(e.target.value);
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-inp-ins")?.addEventListener("change", (e) => {
-        day.insulin24h = numOrNull(e.target.value);
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-inp-urea")?.addEventListener("change", (e) => {
-        day.labUreaPlasma = numOrNull(e.target.value);
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-inp-cr")?.addEventListener("change", (e) => {
-        day.labCreatinine = numOrNull(e.target.value);
-        saveState();
-        renderAll();
-      });
-      bodyEl.querySelector("#wiz-btn-copy-note")?.addEventListener("click", (e) => {
-        navigator.clipboard.writeText(noteText).then(() => {
-          e.target.textContent = "✅ Nota Copiada!";
-          setTimeout(() => {
-            e.target.textContent = "📋 Copiar Nota Clínica";
-          }, 2000);
-        });
-      });
-    }
-
-    // Footer buttons del Wizard
-    footEl.innerHTML = `
-      <button type="button" class="btn btn-outline" id="wiz-btn-prev" ${step === 1 ? "disabled" : ""}>
-        ← Anterior
-      </button>
-      <button type="button" class="btn btn-primary" id="wiz-btn-next">
-        ${step < 7 ? `Següent (${step + 1}/7) →` : "✅ Finalitzar i Veure Balanç Complet"}
-      </button>
-    `;
-
-    footEl.querySelector("#wiz-btn-prev")?.addEventListener("click", () => {
-      if (state.wizardStep > 1) {
-        state.wizardStep--;
-        renderWizardModal(patient, day, m);
-      }
-    });
-
-    footEl.querySelector("#wiz-btn-next")?.addEventListener("click", () => {
-      if (step === 1) {
-        if (!patient.name || !patient.sex || !(patient.age > 0)) {
-          alert("Completa el Nom/Box, el Sexe i l'Edat del malalt per continuar.");
-          return;
-        }
-        patient.patientInfoCompleted = true;
-      } else if (step === 2) {
-        if (!(patient.heightCm >= 100) || !(patient.admissionWeightKg >= 25) || !(patient.habitualWeightKg >= 25)) {
-          alert("Completa la Talla (cm), el Pes actual (kg) i el Pes habitual (kg) per continuar.");
-          return;
-        }
-        patient.admissionCompleted = true;
-        if (!day.actualWeightKg || day.actualWeightKg <= 0) day.actualWeightKg = patient.admissionWeightKg;
-      } else if (step === 4) {
-        day.objectivesCompleted = true;
-      }
-
-      if (step < 7) {
-        state.wizardStep = step + 1;
-        saveState();
-        renderAll();
-      } else {
-        patient.patientInfoCompleted = true;
-        patient.admissionCompleted = true;
-        day.objectivesCompleted = true;
-        day.monitoringVisited = true;
-        day.currentScreen = 10;
-        modal.classList.remove("open");
-        saveState();
-        renderAll();
-      }
+      document.getElementById(`btn-next-from-${scr}`)?.click();
     });
   }
 
@@ -3612,6 +2692,58 @@
     });
     document.getElementById("inp-patient-dysphagia")?.addEventListener("change", (e) => {
       getActivePatient().dysphagia = e.target.value === "true";
+      saveState();
+      renderAll();
+    });
+
+    // Botons visuals tàctils a Pantalla 1 (Sexe, Ubicació, Diabetis, Disfàgia)
+    document.querySelectorAll("[data-sync-select]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const selId = btn.getAttribute("data-sync-select");
+        const val = btn.getAttribute("data-val");
+        if (selId === "inp-patient-sex") {
+          getActivePatient().sex = val;
+        } else if (selId === "inp-patient-initial-loc") {
+          getActiveDay().location = val;
+        }
+        saveState();
+        renderAll();
+      });
+    });
+
+    document.getElementById("btn-toggle-diabetes")?.addEventListener("click", () => {
+      const p = getActivePatient();
+      p.diabetes = !p.diabetes;
+      saveState();
+      renderAll();
+    });
+
+    document.getElementById("btn-toggle-dysphagia")?.addEventListener("click", () => {
+      const p = getActivePatient();
+      p.dysphagia = !p.dysphagia;
+      saveState();
+      renderAll();
+    });
+
+    // Botó 1-clic per auto-calcular escales a Pantalla 3
+    document.getElementById("btn-auto-calc-scales")?.addEventListener("click", () => {
+      const p = getActivePatient();
+      const d = getActiveDay(p);
+      const m = computeMetrics(p, d);
+      autoFillScalesFromAnthro(p, d, m);
+      saveState();
+      renderAll();
+    });
+
+    // Botó 1-clic per marcar Tolerància GI Normal a Pantalla 9
+    document.getElementById("btn-gi-normal-quick")?.addEventListener("click", () => {
+      const d = getActiveDay();
+      d.giVrgMl = 0;
+      d.giVomiting = "no";
+      d.giConstipationDays = 0;
+      d.giDiarrheaCount = 0;
+      d.giDistension = "normal";
+      d.monitoringVisited = true;
       saveState();
       renderAll();
     });
@@ -4267,13 +3399,6 @@
     });
 
     // Modals
-    document.getElementById("btn-open-wizard-modal")?.addEventListener("click", () => {
-      openWizardModal();
-    });
-    document.getElementById("btn-close-wizard-modal")?.addEventListener("click", () => {
-      document.getElementById("modal-wizard")?.classList.remove("open");
-      renderAll();
-    });
     document.getElementById("btn-open-evolution-modal")?.addEventListener("click", () => {
       document.getElementById("modal-evolution")?.classList.add("open");
     });
