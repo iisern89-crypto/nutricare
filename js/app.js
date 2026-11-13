@@ -161,6 +161,23 @@
       glimEtioGastro: false,
       glimEtioAcuteInflammation: true,
       glimEtioChronicInflammation: false,
+      // Cribatge i Valoració de Sarcopènia (EWGSOP2)
+      ewgsopEnabled: false,
+      sarcfStrength: 0,
+      sarcfWalking: 0,
+      sarcfChair: 0,
+      sarcfStairs: 0,
+      sarcfFalls: 0,
+      ewgsopClinicalSuspicion: false,
+      ewgsopHandgripKg: null,
+      ewgsopChairSec: null,
+      ewgsopStrengthStatus: "auto",
+      ewgsopCalfCm: null,
+      ewgsopAsmi: null,
+      ewgsopMassStatus: "auto",
+      ewgsopGaitSpeed: null,
+      ewgsopSppb: null,
+      ewgsopPerfStatus: "auto",
       patientInfoCompleted: false,
       admissionCompleted: false,
       activeDayIndex: 0,
@@ -201,6 +218,23 @@
       glimEtioGastro: false,
       glimEtioAcuteInflammation: true,
       glimEtioChronicInflammation: false,
+      // EWGSOP2 Demo
+      ewgsopEnabled: true,
+      sarcfStrength: 1,
+      sarcfWalking: 1,
+      sarcfChair: 1,
+      sarcfStairs: 1,
+      sarcfFalls: 0,
+      ewgsopClinicalSuspicion: true,
+      ewgsopHandgripKg: 13.5,
+      ewgsopChairSec: null,
+      ewgsopStrengthStatus: "auto",
+      ewgsopCalfCm: 29.5,
+      ewgsopAsmi: null,
+      ewgsopMassStatus: "auto",
+      ewgsopGaitSpeed: null,
+      ewgsopSppb: null,
+      ewgsopPerfStatus: "auto",
       patientInfoCompleted: true,
       admissionCompleted: true,
       activeDayIndex: 0,
@@ -669,6 +703,112 @@
       badgeClass: glimBadgeClass
     };
 
+    // 4. CRIBATGE I DIAGNÒSTIC DE SARCOPÈNIA (EWGSOP2 - Algoritme F-A-C-S)
+    const ewgsopEnabled = Boolean(patient.ewgsopEnabled);
+    const sarcfStrength = Number(patient.sarcfStrength) || 0;
+    const sarcfWalking = Number(patient.sarcfWalking) || 0;
+    const sarcfChair = Number(patient.sarcfChair) || 0;
+    const sarcfStairs = Number(patient.sarcfStairs) || 0;
+    const sarcfFalls = Number(patient.sarcfFalls) || 0;
+    const sarcfTotal = sarcfStrength + sarcfWalking + sarcfChair + sarcfStairs + sarcfFalls;
+    const sarcfPositive = sarcfTotal >= 4;
+    const clinicalSuspicion = Boolean(patient.ewgsopClinicalSuspicion);
+    const findPositive = sarcfPositive || clinicalSuspicion;
+
+    const handgripCutoff = sex === "M" ? 27 : 16;
+    const asmiCutoff = sex === "M" ? 7.0 : 5.5;
+    const calfCutoff = 31;
+
+    const handgripKg = numOrNull(patient.ewgsopHandgripKg);
+    const chairSec = numOrNull(patient.ewgsopChairSec);
+    const strengthStatus = patient.ewgsopStrengthStatus || "auto";
+    const autoLowStrength =
+      (handgripKg !== null && handgripKg < handgripCutoff) ||
+      (chairSec !== null && chairSec > 15);
+    const lowStrength =
+      strengthStatus === "low" ? true : strengthStatus === "normal" ? false : autoLowStrength;
+
+    const calfCm = numOrNull(patient.ewgsopCalfCm);
+    const asmi = numOrNull(patient.ewgsopAsmi);
+    const massStatus = patient.ewgsopMassStatus || "auto";
+    const autoLowMass =
+      (calfCm !== null && calfCm < calfCutoff) ||
+      (asmi !== null && asmi < asmiCutoff);
+    const lowMass =
+      massStatus === "low" ? true : massStatus === "normal" ? false : autoLowMass;
+
+    const gaitSpeed = numOrNull(patient.ewgsopGaitSpeed);
+    const sppb = numOrNull(patient.ewgsopSppb);
+    const perfStatus = patient.ewgsopPerfStatus || "auto";
+    const autoLowPerf =
+      (gaitSpeed !== null && gaitSpeed <= 0.8) ||
+      (sppb !== null && sppb <= 8);
+    const lowPerformance =
+      perfStatus === "low" ? true : perfStatus === "normal" ? false : autoLowPerf;
+
+    let ewgsopDiagnosis = "not_evaluated";
+    let ewgsopDiagnosisLabel = "No avaluat (opcional)";
+    let ewgsopShortLabel = "No avaluat";
+    let ewgsopBadgeClass = "badge-info";
+
+    if (ewgsopEnabled) {
+      if (lowStrength && lowMass && lowPerformance) {
+        ewgsopDiagnosis = "severe_sarcopenia";
+        ewgsopDiagnosisLabel = "Sarcopènia Greu / Severa (EWGSOP2: Criteris 1 + 2 + 3)";
+        ewgsopShortLabel = "Sarcopènia Greu";
+        ewgsopBadgeClass = "badge-danger";
+      } else if (lowStrength && lowMass) {
+        ewgsopDiagnosis = "confirmed_sarcopenia";
+        ewgsopDiagnosisLabel = "Sarcopènia Confirmada (EWGSOP2: Baixa força + Baixa massa)";
+        ewgsopShortLabel = "Sarcopènia Confirmada";
+        ewgsopBadgeClass = "badge-danger";
+      } else if (lowStrength && !lowMass) {
+        ewgsopDiagnosis = "probable_sarcopenia";
+        ewgsopDiagnosisLabel = "Sarcopènia Probable (EWGSOP2: Baixa força muscular - Criteri 1)";
+        ewgsopShortLabel = "Sarcopènia Probable";
+        ewgsopBadgeClass = "badge-warning";
+      } else if (!lowStrength && lowMass) {
+        ewgsopDiagnosis = "low_muscle_mass_only";
+        ewgsopDiagnosisLabel = "Baixa Massa Muscular Documentada (Criteri 2 positiu)";
+        ewgsopShortLabel = "Baixa Massa Muscular";
+        ewgsopBadgeClass = "badge-warning";
+      } else if (findPositive) {
+        ewgsopDiagnosis = "screening_positive";
+        ewgsopDiagnosisLabel = `Cribatge SARC-F Positiu (${sarcfTotal}/10) / Sospita · Pendent mesurar força`;
+        ewgsopShortLabel = `Sospita (SARC-F ${sarcfTotal}/10)`;
+        ewgsopBadgeClass = "badge-warning";
+      } else {
+        ewgsopDiagnosis = "normal";
+        ewgsopDiagnosisLabel = `Sense evidència de Sarcopènia (SARC-F ${sarcfTotal}/10)`;
+        ewgsopShortLabel = "No Sarcopènia";
+        ewgsopBadgeClass = "badge-success";
+      }
+    }
+
+    const ewgsop2 = {
+      ewgsopEnabled,
+      sarcfTotal,
+      sarcfPositive,
+      clinicalSuspicion,
+      findPositive,
+      handgripCutoff,
+      asmiCutoff,
+      calfCutoff,
+      handgripKg,
+      chairSec,
+      lowStrength,
+      calfCm,
+      asmi,
+      lowMass,
+      gaitSpeed,
+      sppb,
+      lowPerformance,
+      diagnosis: ewgsopDiagnosis,
+      diagnosisLabel: ewgsopDiagnosisLabel,
+      shortLabel: ewgsopShortLabel,
+      badgeClass: ewgsopBadgeClass
+    };
+
     return {
       anthropometry: {
         heightCm,
@@ -726,7 +866,8 @@
       phosphateMgDl: phos,
       nrs2002,
       nutricScore,
-      glim
+      glim,
+      ewgsop2
     };
   }
 
@@ -827,7 +968,7 @@
         admBanner.style.display = "block";
         admBanner.innerHTML = `
           <div class="saved-admission-pill">
-            <span>✅ <strong>Ingrés guardat:</strong> ${patient.sex === "M" ? "Home" : "Dona"}, ${patient.age}a · ${patient.heightCm} cm · Pes Treball: <strong>${fmt(m.anthropometry.workWeight, 1)} kg</strong> (IMC ${fmt(m.anthropometry.bmi, 1)}) · <strong>NRS: ${m.nrs2002.total}/7</strong> · <strong>NUTRIC: ${m.nutricScore.total}/9</strong>${m.glim.glimEnabled ? ` · <strong>GLIM:</strong> ${m.glim.diagnosisLabel}` : ""}</span>
+            <span>✅ <strong>Ingrés guardat:</strong> ${patient.sex === "M" ? "Home" : "Dona"}, ${patient.age}a · ${patient.heightCm} cm · Pes Treball: <strong>${fmt(m.anthropometry.workWeight, 1)} kg</strong> (IMC ${fmt(m.anthropometry.bmi, 1)}) · <strong>NRS: ${m.nrs2002.total}/7</strong> · <strong>NUTRIC: ${m.nutricScore.total}/9</strong>${m.glim.glimEnabled ? ` · <strong>GLIM:</strong> ${m.glim.diagnosisLabel}` : ""}${m.ewgsop2.ewgsopEnabled ? ` · <strong>EWGSOP2:</strong> ${m.ewgsop2.shortLabel}` : ""}</span>
             <button type="button" class="btn btn-sm btn-outline" id="btn-edit-admission-top" style="padding:2px 8px; font-size:11px;">✏️ Editar</button>
           </div>
         `;
@@ -1192,6 +1333,106 @@
             : "ℹ️ <strong>Criteris GLIM incomplets:</strong> Cal complir com a mínim 1 criteri fenotípic I 1 criteri etiològic per establir el diagnòstic formal de desnutrició."}
         </div>
       `;
+    }
+
+    // --- 4. RENDER CRIBATGE I VALORACIÓ DE SARCOPÈNIA (EWGSOP2) ---
+    const ew = m.ewgsop2;
+    const chkEwgsop = document.getElementById("chk-enable-ewgsop");
+    if (chkEwgsop) chkEwgsop.checked = Boolean(patient.ewgsopEnabled);
+
+    const ewWrapper = document.getElementById("ewgsop-body-wrapper");
+    if (ewWrapper) ewWrapper.style.display = patient.ewgsopEnabled ? "block" : "none";
+
+    const ewQuickBadge = document.getElementById("badge-ewgsop-quick");
+    if (ewQuickBadge) {
+      if (patient.ewgsopEnabled) {
+        ewQuickBadge.className = `badge ${ew.badgeClass}`;
+        ewQuickBadge.textContent = ew.shortLabel;
+      } else {
+        ewQuickBadge.className = "badge badge-info";
+        ewQuickBadge.textContent = "Algoritme F-A-C-S";
+      }
+    }
+
+    setVal("sel-sarcf-strength", patient.sarcfStrength ?? 0);
+    setVal("sel-sarcf-walking", patient.sarcfWalking ?? 0);
+    setVal("sel-sarcf-chair", patient.sarcfChair ?? 0);
+    setVal("sel-sarcf-stairs", patient.sarcfStairs ?? 0);
+    setVal("sel-sarcf-falls", patient.sarcfFalls ?? 0);
+    setChecked("chk-ewgsop-clinical-suspicion", patient.ewgsopClinicalSuspicion);
+
+    const sarcfBadge = document.getElementById("badge-sarcf-score");
+    if (sarcfBadge) {
+      sarcfBadge.className = `badge ${ew.findPositive ? "badge-danger" : "badge-success"}`;
+      sarcfBadge.textContent = `SARC-F: ${ew.sarcfTotal}/10 · ${ew.sarcfPositive ? "POSITIU (≥ 4)" : ew.clinicalSuspicion ? "Sospita Clínica +" : "Negatiu (< 4)"}`;
+    }
+
+    const hintStrength = document.getElementById("hint-ewgsop-strength-cutoffs");
+    if (hintStrength) {
+      hintStrength.textContent = `📏 Punt de tall pacient (${patient.sex === "M" ? "Home" : "Dona"}): Dinamometria < ${ew.handgripCutoff} kg · Test 5 aixecades > 15 s`;
+    }
+
+    const hintMass = document.getElementById("hint-ewgsop-mass-cutoffs");
+    if (hintMass) {
+      hintMass.textContent = `📏 Punt de tall pacient (${patient.sex === "M" ? "Home" : "Dona"}): ASMI < ${fmt(ew.asmiCutoff, 1)} kg/m² · Perímetre panxell < 31 cm`;
+    }
+
+    setVal("inp-ewgsop-handgrip", patient.ewgsopHandgripKg ?? "");
+    setVal("inp-ewgsop-chair-sec", patient.ewgsopChairSec ?? "");
+    setVal("sel-ewgsop-strength-status", patient.ewgsopStrengthStatus || "auto");
+
+    setVal("inp-ewgsop-calf-cm", patient.ewgsopCalfCm ?? "");
+    setVal("inp-ewgsop-asmi", patient.ewgsopAsmi ?? "");
+    setVal("sel-ewgsop-mass-status", patient.ewgsopMassStatus || "auto");
+
+    setVal("inp-ewgsop-gait", patient.ewgsopGaitSpeed ?? "");
+    setVal("inp-ewgsop-sppb", patient.ewgsopSppb ?? "");
+    setVal("sel-ewgsop-perf-status", patient.ewgsopPerfStatus || "auto");
+
+    const ewBox = document.getElementById("ewgsop-result-box");
+    if (ewBox) {
+      const boxTone = ew.badgeClass === "badge-danger" ? "high-risk" : ew.badgeClass === "badge-warning" ? "moderate-risk" : "low-risk";
+      ewBox.className = `score-result-banner ${boxTone}`;
+
+      let recHtml = "";
+      if (ew.diagnosis === "severe_sarcopenia") {
+        recHtml = "🔴 <strong>Sarcopènia Greu / Severa (Criteris 1 + 2 + 3):</strong> Baixa força + baixa massa/qualitat muscular + baix rendiment físic. <strong>Actuació:</strong> Objectiu hiperproteic prioritari (1,5 - 2,0 g/kg/dia), valorar suplements enriquits amb HMB / leucina + vitamina D i rehabilitació motora precoç.";
+      } else if (ew.diagnosis === "confirmed_sarcopenia") {
+        recHtml = "🟠 <strong>Sarcopènia Confirmada (Criteris 1 + 2):</strong> Baixa força muscular confirmada per baixa quantitat/qualitat muscular (BIA/Eco/Panxell). <strong>Actuació:</strong> Garantir aport proteic ≥ 1,2 - 1,5 g/kg/dia i fisioteràpia de força.";
+      } else if (ew.diagnosis === "probable_sarcopenia") {
+        recHtml = "🟡 <strong>Sarcopènia Probable (Criteri 1 positiu - Baixa força):</strong> Segons les guies EWGSOP2, a la pràctica clínica això és <strong>suficient per iniciar ja intervenció nutricional hiperproteica i exercici físic</strong> mentre s'investiguen les causes o es mesura la massa muscular.";
+      } else if (ew.diagnosis === "low_muscle_mass_only") {
+        recHtml = "🟡 <strong>Baixa Massa Muscular Documentada (Criteri 2 positiu):</strong> Massa muscular reduïda (perímetre panxell < 31 cm o ASMI baix). Serveix directament com a <strong>Criteri Fenotípic C de GLIM</strong>.";
+      } else if (ew.diagnosis === "screening_positive") {
+        recHtml = "🟡 <strong>Cribatge Positiu (SARC-F ≥ 4 o Sospita Clínica):</strong> El pas <em>Find</em> és positiu. Segons l'algoritme EWGSOP2, cal procedir al Pas 2 (<em>Assess</em>) mesurant la força amb dinamometria de mà o test de les 5 aixecades.";
+      } else {
+        recHtml = "🟢 <strong>Sense evidència actual de sarcopènia segons EWGSOP2:</strong> Cribatge SARC-F < 4 i sense dèficit de força ni de massa muscular constatat. Reavaluar periòdicament durant l'ingrés.";
+      }
+
+      const needsGlimSync = ew.lowMass && (!patient.glimEnabled || patient.glimPhenoMuscle === "none");
+      const syncBtnHtml = needsGlimSync
+        ? `<div style="margin-top:8px;">
+             <button type="button" class="btn btn-sm btn-outline" id="btn-sync-ewgsop-to-glim" style="background:#fff;">
+               🔗 Traslladar baixa massa muscular al Criteri C de GLIM (${ew.diagnosis === "severe_sarcopenia" ? "Greu" : "Moderada"})
+             </button>
+           </div>`
+        : "";
+
+      ewBox.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+          <div><strong>RESULTAT EWGSOP2: ${ew.diagnosisLabel}</strong></div>
+          <span class="badge ${ew.badgeClass}">${ew.shortLabel}</span>
+        </div>
+        <div style="font-size:12px; margin-top:4px;">${recHtml}</div>
+        ${syncBtnHtml}
+      `;
+
+      document.getElementById("btn-sync-ewgsop-to-glim")?.addEventListener("click", () => {
+        patient.glimEnabled = true;
+        patient.glimPhenoMuscle = ew.diagnosis === "severe_sarcopenia" ? "severe" : "moderate";
+        saveState();
+        renderAll();
+      });
     }
   }
 
@@ -1973,6 +2214,16 @@
         m.glim.glimEnabled ? ` | GLIM: ${m.glim.diagnosisLabel}` : ""
       }`
     );
+    if (m.ewgsop2.ewgsopEnabled) {
+      const ewDetails = [`SARC-F ${m.ewgsop2.sarcfTotal}/10`];
+      if (m.ewgsop2.handgripKg !== null) ewDetails.push(`Dinamometria ${fmt(m.ewgsop2.handgripKg, 1)} kg`);
+      if (m.ewgsop2.chairSec !== null) ewDetails.push(`Test cadira ${fmt(m.ewgsop2.chairSec, 1)} s`);
+      if (m.ewgsop2.calfCm !== null) ewDetails.push(`Panxell ${fmt(m.ewgsop2.calfCm, 1)} cm`);
+      if (m.ewgsop2.asmi !== null) ewDetails.push(`ASMI ${fmt(m.ewgsop2.asmi, 1)} kg/m²`);
+      if (m.ewgsop2.gaitSpeed !== null) ewDetails.push(`Marxa ${fmt(m.ewgsop2.gaitSpeed, 2)} m/s`);
+      if (m.ewgsop2.sppb !== null) ewDetails.push(`SPPB ${m.ewgsop2.sppb}/12`);
+      lines.push(`Sarcopènia (EWGSOP2): ${m.ewgsop2.diagnosisLabel} [${ewDetails.join(", ")}]`);
+    }
     lines.push(
       `Pes del dia: ${fmt(m.anthropometry.actualWeight, 1)} kg | Pes Ideal: ${fmt(m.anthropometry.idealWeight, 1)} kg | PES DE TREBALL: ${fmt(m.anthropometry.workWeight, 1)} kg ${m.anthropometry.isObeseAdjusted ? "(Pes Ajustat per IMC>30)" : "(Pes Actual)"}`
     );
@@ -2402,6 +2653,22 @@
       p.glimEtioGastro = false;
       p.glimEtioAcuteInflammation = true;
       p.glimEtioChronicInflammation = false;
+      p.ewgsopEnabled = true;
+      p.sarcfStrength = 1;
+      p.sarcfWalking = 1;
+      p.sarcfChair = 1;
+      p.sarcfStairs = 1;
+      p.sarcfFalls = 0;
+      p.ewgsopClinicalSuspicion = true;
+      p.ewgsopHandgripKg = 13.5;
+      p.ewgsopChairSec = null;
+      p.ewgsopStrengthStatus = "auto";
+      p.ewgsopCalfCm = 29.5;
+      p.ewgsopAsmi = null;
+      p.ewgsopMassStatus = "auto";
+      p.ewgsopGaitSpeed = null;
+      p.ewgsopSppb = null;
+      p.ewgsopPerfStatus = "auto";
       p.patientInfoCompleted = true;
       p.admissionCompleted = true;
       d.location = "UCI";
@@ -2438,6 +2705,22 @@
       p.glimEtioGastro = false;
       p.glimEtioAcuteInflammation = true;
       p.glimEtioChronicInflammation = false;
+      p.ewgsopEnabled = false;
+      p.sarcfStrength = 0;
+      p.sarcfWalking = 0;
+      p.sarcfChair = 0;
+      p.sarcfStairs = 0;
+      p.sarcfFalls = 0;
+      p.ewgsopClinicalSuspicion = false;
+      p.ewgsopHandgripKg = null;
+      p.ewgsopChairSec = null;
+      p.ewgsopStrengthStatus = "auto";
+      p.ewgsopCalfCm = null;
+      p.ewgsopAsmi = null;
+      p.ewgsopMassStatus = "auto";
+      p.ewgsopGaitSpeed = null;
+      p.ewgsopSppb = null;
+      p.ewgsopPerfStatus = "auto";
       p.patientInfoCompleted = false;
       p.admissionCompleted = false;
       d.currentScreen = 1;
@@ -2510,6 +2793,42 @@
     bindGlimCheck("chk-glim-etio-gastro", "glimEtioGastro");
     bindGlimCheck("chk-glim-etio-acute", "glimEtioAcuteInflammation");
     bindGlimCheck("chk-glim-etio-chronic", "glimEtioChronicInflammation");
+
+    // Inputs Cribatge i Diagnòstic de Sarcopènia (EWGSOP2)
+    document.getElementById("chk-enable-ewgsop")?.addEventListener("change", (e) => {
+      const p = getActivePatient();
+      p.ewgsopEnabled = e.target.checked;
+      saveState();
+      renderAll();
+    });
+
+    bindPatientProp("sel-sarcf-strength", "sarcfStrength", true);
+    bindPatientProp("sel-sarcf-walking", "sarcfWalking", true);
+    bindPatientProp("sel-sarcf-chair", "sarcfChair", true);
+    bindPatientProp("sel-sarcf-stairs", "sarcfStairs", true);
+    bindPatientProp("sel-sarcf-falls", "sarcfFalls", true);
+    bindGlimCheck("chk-ewgsop-clinical-suspicion", "ewgsopClinicalSuspicion");
+
+    const bindPatientNullableNum = (id, prop) => {
+      document.getElementById(id)?.addEventListener("input", (e) => {
+        const p = getActivePatient();
+        p[prop] = numOrNull(e.target.value);
+        saveState();
+        renderAll();
+      });
+    };
+
+    bindPatientNullableNum("inp-ewgsop-handgrip", "ewgsopHandgripKg");
+    bindPatientNullableNum("inp-ewgsop-chair-sec", "ewgsopChairSec");
+    bindPatientProp("sel-ewgsop-strength-status", "ewgsopStrengthStatus", false);
+
+    bindPatientNullableNum("inp-ewgsop-calf-cm", "ewgsopCalfCm");
+    bindPatientNullableNum("inp-ewgsop-asmi", "ewgsopAsmi");
+    bindPatientProp("sel-ewgsop-mass-status", "ewgsopMassStatus", false);
+
+    bindPatientNullableNum("inp-ewgsop-gait", "ewgsopGaitSpeed");
+    bindPatientNullableNum("inp-ewgsop-sppb", "ewgsopSppb");
+    bindPatientProp("sel-ewgsop-perf-status", "ewgsopPerfStatus", false);
 
     // Sub-pestanyes de Valoració a l'Ingrés (Antropometria <-> Escales de Risc)
     document.getElementById("subtab-to-s2")?.addEventListener("click", () => goToScreen(2));
