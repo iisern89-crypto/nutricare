@@ -1485,7 +1485,7 @@
     <div class="modal-window">
       <div class="modal-header">
         <h3 style="font-size:15px;">📈 Evolució Nutricional</h3>
-        <button type="button" class="btn btn-sm btn-outline" id="btn-close-evolution-modal" style="background:transparent; color:#fff; border-color:#fff;">✕</button>
+        <button type="button" class="btn btn-sm modal-close-btn" id="btn-close-evolution-modal" data-close-modal="modal-evolution">✕ Tancar</button>
       </div>
       <div class="modal-body">
         <div id="evolution-svg-chart" style="margin-bottom:16px;"></div>
@@ -1509,6 +1509,9 @@
           </table>
         </div>
       </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-close-modal="modal-evolution" style="width:100%; justify-content:center;">✕ Tancar</button>
+      </div>
     </div>
   </div>
 
@@ -1517,7 +1520,7 @@
     <div class="modal-window">
       <div class="modal-header">
         <h3 style="font-size:15px;">📖 Catàleg de Fórmules i Dietes</h3>
-        <button type="button" class="btn btn-sm btn-outline" id="btn-close-catalog-modal" style="background:transparent; color:#fff; border-color:#fff;">✕</button>
+        <button type="button" class="btn btn-sm modal-close-btn" id="btn-close-catalog-modal" data-close-modal="modal-catalog">✕ Tancar</button>
       </div>
       <div class="modal-body">
         <div style="margin-bottom:18px;">
@@ -1552,6 +1555,9 @@
           <h4 style="font-size:14px; margin-bottom:8px; color:var(--primary-dark);">📋 Protocol Clínic</h4>
           <div id="protocol-guides-container" class="protocol-guides-grid"></div>
         </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-close-modal="modal-catalog" style="width:100%; justify-content:center;">✕ Tancar Catàleg</button>
       </div>
     </div>
   </div>
