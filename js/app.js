@@ -373,24 +373,25 @@
     const lipidsTargetG = workWeight * (Number(day.lipidsPerKgTarget) || 1.0);
     const maxSafeGlucoseG = (4.5 * workWeight * 1440) / 1000;
 
-    // Aports No Nutricionals (UCI)
+    // Aports No Nutricionals (En Planta només es calcula el Sèrum Glucosat)
+    const isPlanta = day.location === "PLANTA";
     const sgConc = Number(day.sgConcentration) || 0.05;
     const sgVol = Number(day.sgVolumeMl) || 0;
     const sgGlucoseG = sgConc * sgVol;
     const sgKcal = sgGlucoseG * 4;
 
-    const propofolVol = Number(day.propofolVolumeMl) || 0;
+    const propofolVol = isPlanta ? 0 : Number(day.propofolVolumeMl) || 0;
     const propofolLipidsG = propofolVol * 0.1;
     const propofolKcal = propofolVol * 1.1;
 
-    const citrateVol = Number(day.citrateVolumeMl) || 0;
+    const citrateVol = isPlanta ? 0 : Number(day.citrateVolumeMl) || 0;
     const citrateKcal = (citrateVol * 12) / 100;
 
-    const lactuloseUnits = Number(day.lactuloseUnits) || 0;
+    const lactuloseUnits = isPlanta ? 0 : Number(day.lactuloseUnits) || 0;
     const lactuloseGlucoseG = lactuloseUnits * 10;
     const lactuloseKcal = lactuloseGlucoseG * 4;
 
-    const clevidipineVol = Number(day.clevidipineVolumeMl) || 0;
+    const clevidipineVol = isPlanta ? 0 : Number(day.clevidipineVolumeMl) || 0;
     const clevidipineLipidsG = clevidipineVol * 0.2;
     const clevidipineKcal = (clevidipineVol * 200) / 100;
 
@@ -1545,6 +1546,17 @@
   ];
 
   function renderScreen5NonNutr(patient, day, m) {
+    const isPlanta = day.location === "PLANTA";
+    const titleEl = document.getElementById("screen-5-title");
+    if (titleEl) {
+      titleEl.textContent = isPlanta
+        ? "💧 Sèrum Glucosat (Planta)"
+        : "💉 Calòrics No Nutricionals";
+    }
+    document.querySelectorAll(".uci-only-nonnutr").forEach((tr) => {
+      tr.style.display = isPlanta ? "none" : "";
+    });
+
     const cb = document.getElementById("context-banner-screen-5");
     if (cb) cb.innerHTML = buildContextBannerHtml(day, m);
 
@@ -1578,7 +1590,12 @@
     setHtml("cell-lactulose-macro", `${fmt(lacU * 10, 1)} g glucosa`);
     setHtml("cell-lactulose-kcal", `<strong>${fmt(lacU * 40, 0)} kcal</strong>`);
     setHtml("cell-nonnutr-total-vol", `${fmt(m.nonNutr.volumeMl, 0)} ml`);
-    setHtml("cell-nonnutr-total-macro", `${fmt(m.nonNutr.carbsG, 1)}g gluc · ${fmt(m.nonNutr.lipidsG, 1)}g líp`);
+    setHtml(
+      "cell-nonnutr-total-macro",
+      isPlanta
+        ? `${fmt(m.nonNutr.carbsG, 1)}g gluc`
+        : `${fmt(m.nonNutr.carbsG, 1)}g gluc · ${fmt(m.nonNutr.lipidsG, 1)}g líp`
+    );
     setHtml("cell-nonnutr-total-kcal", `${fmt(m.nonNutr.kcal, 0)} kcal`);
   }
 
@@ -2275,10 +2292,12 @@
       const drugTxt = (name, rate, hours, vol) =>
         Number(vol) > 0 ? `${name} ${Number(rate) > 0 ? `${fmt(rate, 1)} ml/h × ${hours}h = ` : ""}${fmt(vol, 0)} ml` : null;
       parts.push(drugTxt(`SG ${Math.round((day.sgConcentration || 0) * 100)}%`, day.sgRateMlH, day.sgHours, day.sgVolumeMl));
-      parts.push(drugTxt("Propofol", day.propofolRateMlH, day.propofolHours, day.propofolVolumeMl));
-      parts.push(drugTxt("Citrat 4%", day.citrateRateMlH, day.citrateHours, day.citrateVolumeMl));
-      parts.push(drugTxt("Clevidipino", day.clevidipineRateMlH, day.clevidipineHours, day.clevidipineVolumeMl));
-      if (Number(day.lactuloseUnits) > 0) parts.push(`Lactulosa ${day.lactuloseUnits} u`);
+      if (day.location !== "PLANTA") {
+        parts.push(drugTxt("Propofol", day.propofolRateMlH, day.propofolHours, day.propofolVolumeMl));
+        parts.push(drugTxt("Citrat 4%", day.citrateRateMlH, day.citrateHours, day.citrateVolumeMl));
+        parts.push(drugTxt("Clevidipino", day.clevidipineRateMlH, day.clevidipineHours, day.clevidipineVolumeMl));
+        if (Number(day.lactuloseUnits) > 0) parts.push(`Lactulosa ${day.lactuloseUnits} u`);
+      }
       lines.push(
         `• Aports no nutricionals (${parts.filter(Boolean).join(", ")}): ${fmt(m.nonNutr.kcal, 0)} kcal (${fmt(m.nonNutr.carbsG, 1)}g gluc, ${fmt(m.nonNutr.lipidsG, 1)}g líp)`
       );
