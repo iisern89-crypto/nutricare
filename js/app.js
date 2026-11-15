@@ -617,9 +617,51 @@
     const refeedingRisk = bmi < 18.5 || weightLossPct > 10 || phos < 2.0;
 
     // =========================================================================
-    // ESCALES DE RISC NUTRICIONAL: NRS-2002 I NUTRIC SCORE
+    // BOLCAT AUTOMÀTIC DE DADES PRÈVIES ALS SCORES DE CRIBRATGE (NRS, NUTRIC, GLIM)
     // =========================================================================
     const patAge = Number(patient.age) || 0;
+
+    if (heightCm > 0 && admissionWeight > 0) {
+      let autoNrsNutr = 0;
+      if (weightLossPct > 15 || (bmi > 0 && bmi < 18.5)) autoNrsNutr = 3;
+      else if (weightLossPct > 10 || (bmi > 0 && bmi < 20.5)) autoNrsNutr = 2;
+      else if (weightLossPct > 5) autoNrsNutr = 1;
+
+      if (!patient._manualNrsNutr) {
+        patient.nrsNutritionalScore = autoNrsNutr;
+      }
+
+      if (!patient._manualGlimWeight) {
+        patient.glimPhenoWeightLoss = weightLossPct > 10 ? "severe" : weightLossPct > 5 ? "moderate" : "none";
+      }
+
+      if (!patient._manualGlimBmi && bmi > 0) {
+        const sevBmi = patAge >= 70 ? 20 : 18.5;
+        const modBmi = patAge >= 70 ? 22 : 20;
+        patient.glimPhenoBmi = bmi < sevBmi ? "severe" : bmi < modBmi ? "moderate" : "none";
+      }
+    }
+
+    if (!patient._manualNrsDis) {
+      patient.nrsDiseaseScore = day.location === "UCI" ? 3 : 1;
+    }
+
+    if (!patient._manualNutricComorb) {
+      patient.nutricComorbidities = patient.diabetes || patient.dysphagia ? 1 : 0;
+    }
+
+    if (!patient._manualGlimAcute) {
+      patient.glimEtioAcuteInflammation = day.location === "UCI";
+    }
+
+    if (
+      !patient._manualGlimEnabled &&
+      (patient.glimPhenoWeightLoss !== "none" ||
+        patient.glimPhenoBmi !== "none" ||
+        (patient.glimPhenoMuscle && patient.glimPhenoMuscle !== "none"))
+    ) {
+      patient.glimEnabled = true;
+    }
 
     // 1. NRS-2002 (ESPEN 2002 - Kondrup et al.)
     const nrsNutritionalScore = Number(patient.nrsNutritionalScore) || 0;
@@ -1206,14 +1248,47 @@
   // PANTALLA 3: ESCALES DE RISC NUTRICIONAL I GLIM
   // =========================================================================
   function renderScreen3Scales(patient, day, m) {
+    // --- 0. INDICADOR DE BOLCAT AUTOMÀTIC ---
+    const anyManual =
+      patient._manualNrsNutr ||
+      patient._manualNrsDis ||
+      patient._manualNutricComorb ||
+      patient._manualGlimWeight ||
+      patient._manualGlimBmi ||
+      patient._manualGlimAcute;
+    const autoBadge = document.getElementById("badge-auto-sync-status");
+    if (autoBadge) {
+      autoBadge.className = `badge ${anyManual ? "badge-warning" : "badge-info"}`;
+      autoBadge.style.cursor = "pointer";
+      autoBadge.textContent = anyManual ? "🔄 Restaurar auto" : "⚡ Bolcat automàtic";
+    }
+
+    const nrsNutrInfo = document.getElementById("auto-info-nrs-nutr");
+    if (nrsNutrInfo) {
+      if (patient._manualNrsNutr) {
+        nrsNutrInfo.textContent = "✏️ Manual";
+      } else if (m.anthropometry.bmi > 0) {
+        nrsNutrInfo.textContent = `⚡ Auto (IMC ${fmt(m.anthropometry.bmi, 1)} · -${fmt(m.anthropometry.weightLossPct, 1)}%)`;
+      } else {
+        nrsNutrInfo.textContent = "⚡ Auto";
+      }
+    }
+
+    const nrsDisInfo = document.getElementById("auto-info-nrs-dis");
+    if (nrsDisInfo) {
+      nrsDisInfo.textContent = patient._manualNrsDis
+        ? "✏️ Manual"
+        : `⚡ Auto (${day.location === "UCI" ? "UCI = 3 pts" : "Planta = 1 pt"})`;
+    }
+
     // --- 1. RENDER NRS-2002 ---
     setVal("sel-nrs-nutritional", patient.nrsNutritionalScore ?? 0);
     setVal("sel-nrs-disease", patient.nrsDiseaseScore ?? (day.location === "UCI" ? 3 : 1));
     const nrsAgeEl = document.getElementById("row-nrs-age-info");
     if (nrsAgeEl) {
       nrsAgeEl.innerHTML = (patient.age >= 70)
-        ? `Edat: <strong>${patient.age} a</strong> → <strong>+1 pt</strong> (≥ 70a)`
-        : `Edat: <strong>${patient.age || 0} a</strong> → <strong>+0 pts</strong> (&lt; 70a)`;
+        ? `⚡ Edat: <strong>${patient.age} a</strong> → <strong>+1 pt</strong> (≥ 70a)`
+        : `⚡ Edat: <strong>${patient.age || 0} a</strong> → <strong>+0 pts</strong> (&lt; 70a)`;
     }
 
     const nrsBox = document.getElementById("nrs-result-box");
@@ -2667,6 +2742,12 @@
         if (prop === "admissionWeightKg" && p.days.length === 1) {
           p.days[0].actualWeightKg = Number(e.target.value);
         }
+        if (prop === "heightCm" || prop === "admissionWeightKg" || prop === "habitualWeightKg" || prop === "age") {
+          delete p._manualNrsNutr;
+          delete p._manualGlimWeight;
+          delete p._manualGlimBmi;
+          delete p._manualGlimEnabled;
+        }
         saveState();
         renderAll();
       });
@@ -2679,19 +2760,26 @@
     bindPatientInput("inp-patient-age", "age", true);
 
     document.getElementById("inp-patient-initial-loc")?.addEventListener("change", (e) => {
-      const d = getActiveDay();
+      const p = getActivePatient();
+      const d = getActiveDay(p);
       d.location = e.target.value;
+      delete p._manualNrsDis;
+      delete p._manualGlimAcute;
       saveState();
       renderAll();
     });
 
     document.getElementById("inp-patient-diabetes")?.addEventListener("change", (e) => {
-      getActivePatient().diabetes = e.target.value === "true";
+      const p = getActivePatient();
+      p.diabetes = e.target.value === "true";
+      delete p._manualNutricComorb;
       saveState();
       renderAll();
     });
     document.getElementById("inp-patient-dysphagia")?.addEventListener("change", (e) => {
-      getActivePatient().dysphagia = e.target.value === "true";
+      const p = getActivePatient();
+      p.dysphagia = e.target.value === "true";
+      delete p._manualNutricComorb;
       saveState();
       renderAll();
     });
@@ -2699,12 +2787,15 @@
     // Botons visuals tàctils a Pantalla 1 (Sexe, Ubicació, Diabetis, Disfàgia)
     document.querySelectorAll("[data-sync-select]").forEach((btn) => {
       btn.addEventListener("click", () => {
+        const p = getActivePatient();
         const selId = btn.getAttribute("data-sync-select");
         const val = btn.getAttribute("data-val");
         if (selId === "inp-patient-sex") {
-          getActivePatient().sex = val;
+          p.sex = val;
         } else if (selId === "inp-patient-initial-loc") {
-          getActiveDay().location = val;
+          getActiveDay(p).location = val;
+          delete p._manualNrsDis;
+          delete p._manualGlimAcute;
         }
         saveState();
         renderAll();
@@ -2714,6 +2805,7 @@
     document.getElementById("btn-toggle-diabetes")?.addEventListener("click", () => {
       const p = getActivePatient();
       p.diabetes = !p.diabetes;
+      delete p._manualNutricComorb;
       saveState();
       renderAll();
     });
@@ -2721,19 +2813,29 @@
     document.getElementById("btn-toggle-dysphagia")?.addEventListener("click", () => {
       const p = getActivePatient();
       p.dysphagia = !p.dysphagia;
+      delete p._manualNutricComorb;
       saveState();
       renderAll();
     });
 
-    // Botó 1-clic per auto-calcular escales a Pantalla 3
-    document.getElementById("btn-auto-calc-scales")?.addEventListener("click", () => {
+    // Indicador/botó per restaurar bolcat automàtic d'escales a Pantalla 3
+    const resetAutoScales = () => {
       const p = getActivePatient();
       const d = getActiveDay(p);
+      delete p._manualNrsNutr;
+      delete p._manualNrsDis;
+      delete p._manualNutricComorb;
+      delete p._manualGlimWeight;
+      delete p._manualGlimBmi;
+      delete p._manualGlimAcute;
+      delete p._manualGlimEnabled;
       const m = computeMetrics(p, d);
       autoFillScalesFromAnthro(p, d, m);
       saveState();
       renderAll();
-    });
+    };
+    document.getElementById("btn-auto-calc-scales")?.addEventListener("click", resetAutoScales);
+    document.getElementById("badge-auto-sync-status")?.addEventListener("click", resetAutoScales);
 
     // Botó 1-clic per marcar Tolerància GI Normal a Pantalla 9
     document.getElementById("btn-gi-normal-quick")?.addEventListener("click", () => {
@@ -2876,45 +2978,48 @@
     bindPatientInput("inp-phosphate", "admissionPhosphateMgDl", true);
 
     // Inputs Escales de Risc Nutricional (NRS-2002 & NUTRIC Score)
-    const bindPatientProp = (id, prop, isNum = false) => {
+    const bindPatientProp = (id, prop, isNum = false, manualFlag = null) => {
       document.getElementById(id)?.addEventListener("change", (e) => {
         const p = getActivePatient();
         p[prop] = isNum ? Number(e.target.value) : e.target.value;
+        if (manualFlag) p[manualFlag] = true;
         saveState();
         renderAll();
       });
     };
 
-    bindPatientProp("sel-nrs-nutritional", "nrsNutritionalScore", true);
-    bindPatientProp("sel-nrs-disease", "nrsDiseaseScore", true);
+    bindPatientProp("sel-nrs-nutritional", "nrsNutritionalScore", true, "_manualNrsNutr");
+    bindPatientProp("sel-nrs-disease", "nrsDiseaseScore", true, "_manualNrsDis");
     bindPatientProp("sel-nutric-apache", "nutricApache", true);
     bindPatientProp("sel-nutric-sofa", "nutricSofa", true);
-    bindPatientProp("sel-nutric-comorb", "nutricComorbidities", true);
+    bindPatientProp("sel-nutric-comorb", "nutricComorbidities", true, "_manualNutricComorb");
     bindPatientProp("sel-nutric-preicu", "nutricPreIcuDays", true);
 
     // Inputs Criteris GLIM (Voluntaris)
     document.getElementById("chk-enable-glim")?.addEventListener("change", (e) => {
       const p = getActivePatient();
       p.glimEnabled = e.target.checked;
+      p._manualGlimEnabled = true;
       saveState();
       renderAll();
     });
 
-    bindPatientProp("sel-glim-pheno-weight", "glimPhenoWeightLoss", false);
-    bindPatientProp("sel-glim-pheno-bmi", "glimPhenoBmi", false);
+    bindPatientProp("sel-glim-pheno-weight", "glimPhenoWeightLoss", false, "_manualGlimWeight");
+    bindPatientProp("sel-glim-pheno-bmi", "glimPhenoBmi", false, "_manualGlimBmi");
     bindPatientProp("sel-glim-pheno-muscle", "glimPhenoMuscle", false);
 
-    const bindGlimCheck = (id, prop) => {
+    const bindGlimCheck = (id, prop, manualFlag = null) => {
       document.getElementById(id)?.addEventListener("change", (e) => {
         const p = getActivePatient();
         p[prop] = e.target.checked;
+        if (manualFlag) p[manualFlag] = true;
         saveState();
         renderAll();
       });
     };
     bindGlimCheck("chk-glim-etio-intake", "glimEtioIntake");
     bindGlimCheck("chk-glim-etio-gastro", "glimEtioGastro");
-    bindGlimCheck("chk-glim-etio-acute", "glimEtioAcuteInflammation");
+    bindGlimCheck("chk-glim-etio-acute", "glimEtioAcuteInflammation", "_manualGlimAcute");
     bindGlimCheck("chk-glim-etio-chronic", "glimEtioChronicInflammation");
 
     // Inputs Cribatge i Diagnòstic de Sarcopènia (EWGSOP2)
