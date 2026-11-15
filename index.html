@@ -25,6 +25,7 @@
           <h1>
             NutriCare
             <span class="brand-tag">UCI → Planta</span>
+            <span id="offline-status-pill" class="brand-tag" style="display:none; background:#f59e0b; color:#fff;">📴 Offline</span>
           </h1>
           <div class="brand-subtitle">Suport Nutricional i Metabòlic Pas a Pas</div>
         </div>
@@ -1564,5 +1565,19 @@
 
   <script src="js/data.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      });
+    }
+    function updateOfflineIndicator() {
+      const pill = document.getElementById("offline-status-pill");
+      if (pill) pill.style.display = navigator.onLine ? "none" : "inline-block";
+    }
+    window.addEventListener("online", updateOfflineIndicator);
+    window.addEventListener("offline", updateOfflineIndicator);
+    updateOfflineIndicator();
+  </script>
 </body>
 </html>
