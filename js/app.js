@@ -3541,14 +3541,38 @@
     document.getElementById("btn-open-evolution-modal")?.addEventListener("click", () => {
       document.getElementById("modal-evolution")?.classList.add("open");
     });
-    document.getElementById("btn-close-evolution-modal")?.addEventListener("click", () => {
-      document.getElementById("modal-evolution")?.classList.remove("open");
-    });
     document.getElementById("btn-open-catalog-modal")?.addEventListener("click", () => {
       document.getElementById("modal-catalog")?.classList.add("open");
     });
-    document.getElementById("btn-close-catalog-modal")?.addEventListener("click", () => {
-      document.getElementById("modal-catalog")?.classList.remove("open");
+
+    const closeModalById = (id) => {
+      document.getElementById(id)?.classList.remove("open");
+    };
+
+    document.querySelectorAll("[data-close-modal]").forEach((btn) => {
+      const mId = btn.getAttribute("data-close-modal");
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeModalById(mId);
+      });
+    });
+
+    document.getElementById("btn-close-evolution-modal")?.addEventListener("click", () => closeModalById("modal-evolution"));
+    document.getElementById("btn-close-catalog-modal")?.addEventListener("click", () => closeModalById("modal-catalog"));
+
+    document.querySelectorAll(".modal-backdrop").forEach((backdrop) => {
+      backdrop.addEventListener("click", (e) => {
+        if (e.target === backdrop) {
+          backdrop.classList.remove("open");
+        }
+      });
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        document.querySelectorAll(".modal-backdrop.open").forEach((b) => b.classList.remove("open"));
+      }
     });
 
     document.getElementById("diet-search-input")?.addEventListener("input", (e) => {
