@@ -116,6 +116,9 @@
     Object.keys(blank).forEach((k) => {
       if (d[k] === undefined) d[k] = blank[k];
     });
+    if (typeof d.phaseLabel === "string" && d.phaseLabel.includes(" - Fase Anabòlica")) {
+      d.phaseLabel = d.phaseLabel.replace(" - Fase Anabòlica", "");
+    }
     if (!Array.isArray(d.weeklyGly) || d.weeklyGly.length !== 6) d.weeklyGly = blank.weeklyGly;
     if (!window.HUMT_DATA.enteralFormulas.some((f) => f.id === d.neFormulaId)) {
       d.neFormulaId = window.HUMT_DATA.enteralFormulas[0].id;
@@ -2763,6 +2766,7 @@
       const p = getActivePatient();
       const d = getActiveDay(p);
       d.location = e.target.value;
+      d.phaseLabel = d.location === "PLANTA" ? `Dia ${d.dayNumber} Planta` : `Dia ${d.dayNumber} UCI`;
       delete p._manualNrsDis;
       delete p._manualGlimAcute;
       saveState();
@@ -2793,7 +2797,9 @@
         if (selId === "inp-patient-sex") {
           p.sex = val;
         } else if (selId === "inp-patient-initial-loc") {
-          getActiveDay(p).location = val;
+          const d = getActiveDay(p);
+          d.location = val;
+          d.phaseLabel = val === "PLANTA" ? `Dia ${d.dayNumber} Planta` : `Dia ${d.dayNumber} UCI`;
           delete p._manualNrsDis;
           delete p._manualGlimAcute;
         }
@@ -3109,7 +3115,16 @@
       });
     };
 
-    bindDayInput("inp-day-location", "location", false);
+    document.getElementById("inp-day-location")?.addEventListener("change", (e) => {
+      const p = getActivePatient();
+      const d = getActiveDay(p);
+      d.location = e.target.value;
+      d.phaseLabel = d.location === "PLANTA" ? `Dia ${d.dayNumber} Planta` : `Dia ${d.dayNumber} UCI`;
+      delete p._manualNrsDis;
+      delete p._manualGlimAcute;
+      saveState();
+      renderAll();
+    });
     bindDayInput("inp-day-phase", "phaseLabel", false);
     bindDayInput("inp-day-date", "date", false);
     bindDayInput("inp-actual-weight", "actualWeightKg", true);
@@ -3193,7 +3208,7 @@
           d.lipidsPerKgTarget = 1.0;
         } else if (key === "planta_anabolic") {
           d.location = "PLANTA";
-          d.phaseLabel = `Dia ${d.dayNumber} Planta - Fase Anabòlica`;
+          d.phaseLabel = `Dia ${d.dayNumber} Planta`;
           d.kcalPerKgTarget = 30;
           d.proteinPerKgTarget = 1.8;
           d.lipidsPerKgTarget = 1.2;
