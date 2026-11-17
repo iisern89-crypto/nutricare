@@ -1879,3 +1879,91 @@ table.clinical-table th.num {
     gap: 8px;
   }
 }
+
+/* ========================================================================= */
+/* AGENT IA DETECTOR D'INGESTA PER FOTOS (ABANS vs DESPRÉS)                  */
+/* ========================================================================= */
+
+.photo-agent-summary-banner {
+  background: linear-gradient(135deg, #f0fdfa 0%, #eff6ff 100%);
+  border: 1.5px solid #5eead4;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.photo-agent-macros-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #99f6e4;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--primary-dark);
+}
+
+.meal-ai-result-box {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: #f0fdfa;
+  border: 1.5px solid #5eead4;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.meal-ai-result-box.pending {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+  font-size: 11.5px;
+}
+
+.meal-ai-macros-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.ai-macro-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+}
+
+.ai-macro-pill.kcal {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.ai-macro-pill.prot {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+.ai-macro-pill.lip {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.ai-macro-pill.carb {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #b45309;
+}
+
+.photo-slot.has-photo {
+  border-color: var(--primary);
+  background: #f0fdfa;
+}
+
