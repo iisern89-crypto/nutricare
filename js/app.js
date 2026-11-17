@@ -51,12 +51,12 @@
       // Pantalla 3: Via Oral
       oralActive: false,
       oralDietName: location === "PLANTA" ? "DIETA INGRÉS" : "SEMILIQUIDA",
-      comstockExpanded: false,
+      comstockExpanded: true,
       meals: {
-        breakfast: { weight: 0.2, eatenPct: 0.5, obs: "", photoBefore: null, photoAfter: null },
-        lunch: { weight: 0.4, eatenPct: 0.5, obs: "", photoBefore: null, photoAfter: null },
-        snack: { weight: 0.1, eatenPct: 0.75, obs: "", photoBefore: null, photoAfter: null },
-        dinner: { weight: 0.3, eatenPct: 0.5, obs: "", photoBefore: null, photoAfter: null }
+        breakfast: { weight: 0.2, eatenPct: 0.5, obs: "", photoBefore: null, photoAfter: null, aiAnalysis: null },
+        lunch: { weight: 0.4, eatenPct: 0.5, obs: "", photoBefore: null, photoAfter: null, aiAnalysis: null },
+        snack: { weight: 0.1, eatenPct: 0.75, obs: "", photoBefore: null, photoAfter: null, aiAnalysis: null },
+        dinner: { weight: 0.3, eatenPct: 0.5, obs: "", photoBefore: null, photoAfter: null, aiAnalysis: null }
       },
       supplements: [],
       // Pantalla 4: Nutrició Enteral
@@ -414,24 +414,64 @@
     ];
 
     let globalEatenFraction = 0;
+    let totalTrayKcal = 0;
+    let totalTrayProt = 0;
+    let totalTrayLip = 0;
+    let totalTrayCarbs = 0;
+    let totalTrayFiber = 0;
+
     const mealBreakdown = mealDefs.map((m) => {
       const mData = (day.meals && day.meals[m.key]) || { weight: m.defaultWeight, eatenPct: 0, obs: "" };
       const eatenPct = day.oralActive ? Number(mData.eatenPct ?? 0) : 0;
       const dietFraction = m.defaultWeight * eatenPct;
       globalEatenFraction += dietFraction;
+
+      const baseMealKcal = diet ? diet.kcal * m.defaultWeight : 0;
+      const baseMealProt = diet ? diet.protein * m.defaultWeight : 0;
+      const baseMealLip = diet ? diet.lipids * m.defaultWeight : 0;
+      const baseMealCarbs = diet ? diet.carbs * m.defaultWeight : 0;
+      const baseMealFiber = diet ? diet.fiber * m.defaultWeight : 0;
+
+      const ai = mData.aiAnalysis || null;
+      const pMult = ai && ai.proteinFactor ? ai.proteinFactor : 1;
+      const lMult = ai && ai.lipidFactor ? ai.lipidFactor : 1;
+      const cMult = ai && ai.carbFactor ? ai.carbFactor : 1;
+
+      const mealProt = day.oralActive ? Math.min(baseMealProt, baseMealProt * eatenPct * pMult) : 0;
+      const mealLip = day.oralActive ? Math.min(baseMealLip, baseMealLip * eatenPct * lMult) : 0;
+      const mealCarbs = day.oralActive ? Math.min(baseMealCarbs, baseMealCarbs * eatenPct * cMult) : 0;
+      const mealFiber = day.oralActive ? baseMealFiber * eatenPct : 0;
+      const mealKcal =
+        day.oralActive
+          ? ai && (pMult !== 1 || lMult !== 1 || cMult !== 1)
+            ? Math.min(baseMealKcal, mealProt * 4 + mealLip * 9 + mealCarbs * 4)
+            : baseMealKcal * eatenPct
+          : 0;
+
+      totalTrayKcal += mealKcal;
+      totalTrayProt += mealProt;
+      totalTrayLip += mealLip;
+      totalTrayCarbs += mealCarbs;
+      totalTrayFiber += mealFiber;
+
       return {
         key: m.key,
         label: m.label,
         weight: m.defaultWeight,
         eatenPct,
         dietFraction,
-        kcal: diet ? diet.kcal * dietFraction : 0,
-        proteinG: diet ? diet.protein * dietFraction : 0,
-        lipidsG: diet ? diet.lipids * dietFraction : 0,
-        carbsG: diet ? diet.carbs * dietFraction : 0,
-        fiberG: diet ? diet.fiber * dietFraction : 0,
+        baseMealKcal,
+        baseMealProt,
+        baseMealLip,
+        baseMealCarbs,
+        kcal: mealKcal,
+        proteinG: mealProt,
+        lipidsG: mealLip,
+        carbsG: mealCarbs,
+        fiberG: mealFiber,
         photoBefore: mData.photoBefore || null,
-        photoAfter: mData.photoAfter || null
+        photoAfter: mData.photoAfter || null,
+        aiAnalysis: ai
       };
     });
 
@@ -439,11 +479,11 @@
       diet,
       active: Boolean(day.oralActive),
       globalEatenPct: globalEatenFraction * 100,
-      kcal: diet && day.oralActive ? diet.kcal * globalEatenFraction : 0,
-      proteinG: diet && day.oralActive ? diet.protein * globalEatenFraction : 0,
-      lipidsG: diet && day.oralActive ? diet.lipids * globalEatenFraction : 0,
-      carbsG: diet && day.oralActive ? diet.carbs * globalEatenFraction : 0,
-      fiberG: diet && day.oralActive ? diet.fiber * globalEatenFraction : 0,
+      kcal: day.oralActive ? totalTrayKcal : 0,
+      proteinG: day.oralActive ? totalTrayProt : 0,
+      lipidsG: day.oralActive ? totalTrayLip : 0,
+      carbsG: day.oralActive ? totalTrayCarbs : 0,
+      fiberG: day.oralActive ? totalTrayFiber : 0,
       meals: mealBreakdown
     };
 
@@ -1600,6 +1640,272 @@
   }
 
   // =========================================================================
+  // AGENT IA ANALITZADOR VISUAL D'INGESTA PER FOTOS (ABANS vs DESPRÉS)
+  // =========================================================================
+  const GEMINI_KEY_STORAGE = "nutrihumt_gemini_api_key";
+
+  function getGeminiApiKey() {
+    try {
+      return localStorage.getItem(GEMINI_KEY_STORAGE) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function setGeminiApiKey(key) {
+    try {
+      if (key && key.trim()) {
+        localStorage.setItem(GEMINI_KEY_STORAGE, key.trim());
+      } else {
+        localStorage.removeItem(GEMINI_KEY_STORAGE);
+      }
+    } catch (e) {}
+  }
+
+  // Motor de Visió per Computador Local (100% Offline, basat en segmentació cromàtica + textura Sobel)
+  function extractDishMetricsFromDataUrl(dataUrl) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const S = 120;
+        const canvas = document.createElement("canvas");
+        canvas.width = S;
+        canvas.height = S;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, S, S);
+        const data = ctx.getImageData(0, 0, S, S).data;
+
+        // 1. Estimar el color base del plat/safata a l'anell perifèric (r entre 0.36 i 0.46)
+        let bgR = 0, bgG = 0, bgB = 0, bgCount = 0;
+        const cx = S / 2, cy = S / 2;
+        for (let y = 0; y < S; y++) {
+          for (let x = 0; x < S; x++) {
+            const dx = (x - cx) / S;
+            const dy = (y - cy) / S;
+            const r = Math.sqrt(dx * dx + dy * dy);
+            if (r >= 0.35 && r <= 0.45) {
+              const i = (y * S + x) * 4;
+              bgR += data[i];
+              bgG += data[i + 1];
+              bgB += data[i + 2];
+              bgCount++;
+            }
+          }
+        }
+        if (bgCount > 0) {
+          bgR /= bgCount;
+          bgG /= bgCount;
+          bgB /= bgCount;
+        } else {
+          bgR = 230; bgG = 230; bgB = 230;
+        }
+
+        // 2. Analitzar la regió central del plat (r <= 0.38): saturació, distància al fons i textura local
+        let foodScore = 0;
+        let proteinSignal = 0;
+        let lipidSignal = 0;
+        let carbSignal = 0;
+        let roiPixels = 0;
+
+        for (let y = 2; y < S - 2; y++) {
+          for (let x = 2; x < S - 2; x++) {
+            const dx = (x - cx) / S;
+            const dy = (y - cy) / S;
+            const r = Math.sqrt(dx * dx + dy * dy);
+            if (r > 0.38) continue;
+            roiPixels++;
+
+            const i = (y * S + x) * 4;
+            const R = data[i], G = data[i + 1], B = data[i + 2];
+
+            // Distància cromàtica respecte el plat buit
+            const distBg = Math.sqrt((R - bgR) ** 2 + (G - bgG) ** 2 + (B - bgB) ** 2) / 255;
+
+            // Saturació HSV
+            const maxC = Math.max(R, G, B) / 255;
+            const minC = Math.min(R, G, B) / 255;
+            const sat = maxC > 0.05 ? (maxC - minC) / maxC : 0;
+
+            // Gradient local (textura d'aliment fins i tot en aliments clars com peix, arròs, pa o pollastre)
+            const iRight = (y * S + (x + 1)) * 4;
+            const iDown = ((y + 1) * S + x) * 4;
+            const lum = (R + G + B) / (3 * 255);
+            const lumR = (data[iRight] + data[iRight + 1] + data[iRight + 2]) / (3 * 255);
+            const lumD = (data[iDown] + data[iDown + 1] + data[iDown + 2]) / (3 * 255);
+            const edge = Math.min(1, (Math.abs(lum - lumR) + Math.abs(lum - lumD)) * 3.5);
+
+            // Índex combinat de presència d'aliment en aquest píxel
+            const pixelFood = Math.min(1, sat * 1.45 + distBg * 1.15 + edge * 0.65);
+            if (pixelFood > 0.22) {
+              foodScore += pixelFood;
+
+              // Sub-senyals d'estimació de macronutrients segons to i textura
+              const warmth = Math.max(0, (R - B) / 255);
+              const redness = Math.max(0, (R - G * 0.85) / 255);
+              const yellowness = Math.max(0, ((R + G) / 2 - B) / 255);
+
+              proteinSignal += pixelFood * (0.5 + redness * 1.3 + edge * 0.6);
+              lipidSignal += pixelFood * (0.5 + yellowness * 1.2 + sat * 0.5);
+              carbSignal += pixelFood * (0.5 + warmth * 0.8 + (1 - sat) * 0.5);
+            }
+          }
+        }
+
+        const norm = roiPixels || 1;
+        resolve({
+          foodDensity: foodScore / norm,
+          proteinDensity: proteinSignal / norm,
+          lipidDensity: lipidSignal / norm,
+          carbDensity: carbSignal / norm
+        });
+      };
+      img.onerror = () => resolve({ foodDensity: 0.3, proteinDensity: 0.2, lipidDensity: 0.2, carbDensity: 0.2 });
+      img.src = dataUrl;
+    });
+  }
+
+  async function callGeminiVisionMealAgent(apiKey, photoBefore, photoAfter, meal, diet) {
+    const cleanBase64 = (dUrl) => (dUrl.includes(",") ? dUrl.split(",")[1] : dUrl);
+    const baseKcal = Math.round((diet ? diet.kcal : 1800) * meal.weight);
+    const baseProt = Math.round((diet ? diet.protein : 80) * meal.weight * 10) / 10;
+    const baseLip = Math.round((diet ? diet.lipids : 60) * meal.weight * 10) / 10;
+    const baseCarbs = Math.round((diet ? diet.carbs : 200) * meal.weight * 10) / 10;
+
+    const promptText = `Ets un Agent Clínic de Nutrició Hospitalària. Analitza aquestes 2 fotos d'un àpat hospitalari (${meal.label}):
+- Imatge 1: Foto ABANS de menjar (100% de l'àpat servit).
+- Imatge 2: Foto DESPRÉS de menjar (restes a la safata/plat).
+Dieta pautada: "${diet ? diet.name : "Dieta Hospitalària"}" (${diet ? diet.menu : ""}).
+El 100% d'aquest àpat aporta: ${baseKcal} kcal, ${baseProt} g proteïnes, ${baseLip} g lípids, ${baseCarbs} g hidrats.
+Calcula quin percentatge ha menjat realment el malalt comparant l'abans i el després, i estima els factors de consum de proteïnes, lípids i hidrats (entre 0.7 i 1.3 sobre el % general segons si ha menjat més el segon plat proteic o el primer/guarnició).
+Respon ÚNICAMENT amb un objecte JSON vàlid amb aquest format exacte:
+{"eatenPct": 0.75, "proteinFactor": 1.0, "lipidFactor": 1.0, "carbFactor": 1.0, "summary": "Breu explicació en català (màx 12 paraules) del que ha menjat"}`;
+
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: promptText },
+                { inline_data: { mime_type: "image/jpeg", data: cleanBase64(photoBefore) } },
+                { inline_data: { mime_type: "image/jpeg", data: cleanBase64(photoAfter) } }
+              ]
+            }
+          ],
+          generationConfig: { temperature: 0.1 }
+        })
+      }
+    );
+    if (!resp.ok) throw new Error("Gemini API error");
+    const json = await resp.json();
+    const rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const match = rawText.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("No JSON");
+    const parsed = JSON.parse(match[0]);
+    const eatenPct = Math.max(0, Math.min(1, Number(parsed.eatenPct) || 0.5));
+    return {
+      mode: "Gemini Vision IA",
+      eatenPct: Math.round(eatenPct * 100) / 100,
+      proteinFactor: Math.max(0.65, Math.min(1.35, Number(parsed.proteinFactor) || 1)),
+      lipidFactor: Math.max(0.65, Math.min(1.35, Number(parsed.lipidFactor) || 1)),
+      carbFactor: Math.max(0.65, Math.min(1.35, Number(parsed.carbFactor) || 1)),
+      summary: parsed.summary || `Detecció IA: ${Math.round(eatenPct * 100)}% de l'àpat ingerit.`
+    };
+  }
+
+  async function analyzeMealPhotosAgent(day, mealKey) {
+    const mData = day.meals && day.meals[mealKey];
+    if (!mData || !mData.photoBefore || !mData.photoAfter) return;
+
+    const diet = window.HUMT_DATA.hospitalDiets.find((d) => d.name === day.oralDietName) || window.HUMT_DATA.hospitalDiets[0];
+    const mealWeights = { breakfast: 0.2, lunch: 0.4, snack: 0.1, dinner: 0.3 };
+    const mealLabels = {
+      breakfast: "Esmorzar (20%)",
+      lunch: "Dinar (40%)",
+      snack: "Berenar (10%)",
+      dinner: "Sopar (30%)"
+    };
+    const mealInfo = { key: mealKey, weight: mealWeights[mealKey] || 0.25, label: mealLabels[mealKey] || mealKey };
+
+    mData.aiAnalyzing = true;
+    renderAll();
+
+    let result = null;
+    const apiKey = getGeminiApiKey();
+
+    // 1. Si hi ha clau Gemini configurada i connexió, intenta usar Gemini Vision IA
+    if (apiKey && navigator.onLine) {
+      try {
+        result = await callGeminiVisionMealAgent(apiKey, mData.photoBefore, mData.photoAfter, mealInfo, diet);
+      } catch (e) {
+        result = null;
+      }
+    }
+
+    // 2. Motor de Visió per Computador Local (100% Offline, instantani i sempre disponible)
+    if (!result) {
+      const beforeM = await extractDishMetricsFromDataUrl(mData.photoBefore);
+      const afterM = await extractDishMetricsFromDataUrl(mData.photoAfter);
+
+      const baseD = Math.max(0.06, beforeM.foodDensity);
+      // Descompte del soroll residual de la vaixella buida (~18% de la densitat base)
+      const emptyFloor = Math.min(0.08, baseD * 0.18);
+      const netBefore = Math.max(0.04, beforeM.foodDensity - emptyFloor);
+      const netAfter = Math.max(0, afterM.foodDensity - emptyFloor);
+
+      let rawEaten = 1 - netAfter / netBefore;
+      // Si les dues imatges són idèntiques, rawEaten = 0; si després està gairebé net, rawEaten -> 1
+      rawEaten = Math.max(0, Math.min(1, rawEaten));
+      const eatenPct = Math.round(rawEaten * 100) / 100;
+
+      // Factors diferencials de proteïna, lípids i HC segons la reducció de cada senyal cromàtica/textural
+      const calcSpecFactor = (bVal, aVal) => {
+        if (eatenPct <= 0.05 || eatenPct >= 0.95 || bVal <= 0.02) return 1.0;
+        const specEaten = Math.max(0, Math.min(1, 1 - Math.max(0, aVal - emptyFloor * 0.7) / Math.max(0.02, bVal - emptyFloor * 0.7)));
+        const ratio = specEaten / Math.max(0.1, eatenPct);
+        return Math.round(Math.max(0.8, Math.min(1.2, ratio)) * 100) / 100;
+      };
+
+      const proteinFactor = calcSpecFactor(beforeM.proteinDensity, afterM.proteinDensity);
+      const lipidFactor = calcSpecFactor(beforeM.lipidDensity, afterM.lipidDensity);
+      const carbFactor = calcSpecFactor(beforeM.carbDensity, afterM.carbDensity);
+
+      let desc = "Safata gairebé íntegra (baixa ingesta)";
+      if (eatenPct >= 0.85) desc = "Plat gairebé buit · Ingesta completa";
+      else if (eatenPct >= 0.65) desc = "Bona reducció visual de l'àpat (~3/4 ingerit)";
+      else if (eatenPct >= 0.4) desc = "Ingesta parcial (~meitat de la ració)";
+      else if (eatenPct >= 0.15) desc = "Ingesta escassa (~1/4 de la ració)";
+
+      result = {
+        mode: "Visió CV Local",
+        eatenPct,
+        proteinFactor,
+        lipidFactor,
+        carbFactor,
+        summary: desc
+      };
+    }
+
+    mData.aiAnalyzing = false;
+    mData.eatenPct = result.eatenPct;
+    mData.aiAnalysis = {
+      analyzedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      mode: result.mode,
+      eatenPct: result.eatenPct,
+      proteinFactor: result.proteinFactor,
+      lipidFactor: result.lipidFactor,
+      carbFactor: result.carbFactor,
+      summary: result.summary
+    };
+
+    saveState();
+    renderAll();
+  }
+
+  // =========================================================================
   // PANTALLA 6: VALORACIÓ D'INGESTA ORAL (1a VIA)
   // =========================================================================
   function renderScreen6Oral(patient, day, m) {
@@ -1613,6 +1919,13 @@
     panel.style.display = day.oralActive ? "block" : "none";
 
     if (!day.oralActive) return;
+
+    const hasCloudKey = Boolean(getGeminiApiKey());
+    const modeBadge = document.getElementById("badge-photo-agent-mode");
+    if (modeBadge) {
+      modeBadge.className = `badge ${hasCloudKey ? "badge-success" : "badge-info"}`;
+      modeBadge.textContent = hasCloudKey ? "🤖 Agent Gemini Vision + CV" : "🤖 Agent Visió Local Actiu";
+    }
 
     const dietSelect = document.getElementById("inp-oral-diet");
     if (dietSelect) {
@@ -1635,14 +1948,49 @@
       bannerEl.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div>
-            <strong>${d.name}</strong> (100% safata = ${fmt(d.kcal, 0)} kcal, ${fmt(d.protein, 1)}g Prot) ·
+            <strong>${d.name}</strong> (100% = ${fmt(d.kcal, 0)} kcal · ${fmt(d.protein, 1)}g Prot · ${fmt(d.lipids, 1)}g Líp) ·
             <strong>Ingerit: ${fmt(pct, 0)}%</strong> ${alertBadge}
           </div>
           <div style="font-weight:800; color:var(--primary-dark);">
-            Safata: +${fmt(m.oralTray.kcal, 0)} kcal i +${fmt(m.oralTray.proteinG, 1)} g Prot
+            Safata: +${fmt(m.oralTray.kcal, 0)} kcal · +${fmt(m.oralTray.proteinG, 1)}g Prot · +${fmt(m.oralTray.lipidsG, 1)}g Líp
           </div>
         </div>
         <div style="font-size:12px; color:var(--text-muted); margin-top:4px;"><strong>Menú tipus:</strong> ${d.menu}</div>
+      `;
+    }
+
+    // Resum Global de l'Agent d'Ingesta per Fotos
+    const agentSummaryEl = document.getElementById("photo-agent-global-summary");
+    if (agentSummaryEl) {
+      const analyzedMeals = m.oralTray.meals.filter((ml) => ml.photoBefore && ml.photoAfter);
+      const photoKcal = analyzedMeals.reduce((acc, ml) => acc + ml.kcal, 0);
+      const photoProt = analyzedMeals.reduce((acc, ml) => acc + ml.proteinG, 0);
+      const photoLip = analyzedMeals.reduce((acc, ml) => acc + ml.lipidsG, 0);
+
+      agentSummaryEl.innerHTML = `
+        <div class="photo-agent-summary-banner">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <strong style="color:var(--primary-dark); font-size:13px;">🤖 Agent Detector d'Ingesta (Fotos Abans / Després)</strong>
+              <div style="font-size:11.5px; color:var(--text-muted);">
+                Insereix la <strong>Foto Abans</strong> i la <strong>Foto Després</strong> a cada àpat: l'agent calcula automàticament les Kcal, Proteïnes i Lípids ingerits.
+              </div>
+            </div>
+            <span class="badge ${analyzedMeals.length > 0 ? "badge-success" : "badge-info"}">
+              📷 ${analyzedMeals.length}/4 àpats amb fotos
+            </span>
+          </div>
+          ${
+            analyzedMeals.length > 0
+              ? `<div class="photo-agent-macros-bar" style="margin-top:8px;">
+                   <span>Detectat per fotos (${analyzedMeals.length} àpats):</span>
+                   <strong>🔥 ${fmt(photoKcal, 0)} kcal</strong>
+                   <strong>🥩 ${fmt(photoProt, 1)} g Prot</strong>
+                   <strong>💧 ${fmt(photoLip, 1)} g Lípids</strong>
+                 </div>`
+              : ""
+          }
+        </div>
       `;
     }
 
@@ -1661,17 +2009,72 @@
 
       mealsContainer.innerHTML = m.oralTray.meals
         .map((meal) => {
-          const curPct = day.meals && day.meals[meal.key] ? Number(day.meals[meal.key].eatenPct) : 0;
+          const mState = (day.meals && day.meals[meal.key]) || {};
+          const curPct = Number(mState.eatenPct ?? 0);
+          const ai = meal.aiAnalysis;
+          const hasBothPhotos = Boolean(meal.photoBefore && meal.photoAfter);
+
+          // Botó Comstock més proper
+          let closestLvl = levels[0].val;
+          let minDiff = 999;
+          levels.forEach((l) => {
+            const diff = Math.abs(curPct - l.val);
+            if (diff < minDiff) {
+              minDiff = diff;
+              closestLvl = l.val;
+            }
+          });
+
+          const aiCardHtml = mState.aiAnalyzing
+            ? `<div class="meal-ai-result-box">
+                 <span>🤖 <strong>Analitzant fotos Abans / Després...</strong></span>
+               </div>`
+            : hasBothPhotos
+            ? `<div class="meal-ai-result-box">
+                 <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
+                   <span style="font-weight:800; color:var(--primary-dark);">
+                     🤖 Agent IA: ${Math.round(curPct * 100)}% ingerit
+                   </span>
+                   <div style="display:flex; gap:4px;">
+                     <button type="button" class="btn btn-sm btn-outline btn-reanalyze-meal" data-meal="${meal.key}" style="padding:2px 7px; font-size:11px;">
+                       🔄 Analitzar
+                     </button>
+                     <button type="button" class="btn btn-sm btn-danger-outline btn-clear-meal-photos" data-meal="${meal.key}" style="padding:2px 7px; font-size:11px;" title="Esborrar fotos">
+                       🗑️
+                     </button>
+                   </div>
+                 </div>
+                 <div class="meal-ai-macros-pills">
+                   <span class="ai-macro-pill kcal">🔥 ${fmt(meal.kcal, 0)} kcal</span>
+                   <span class="ai-macro-pill prot">🥩 ${fmt(meal.proteinG, 1)} g Prot</span>
+                   <span class="ai-macro-pill lip">💧 ${fmt(meal.lipidsG, 1)} g Líp</span>
+                   <span class="ai-macro-pill carb">🍞 ${fmt(meal.carbsG, 1)} g HC</span>
+                 </div>
+                 ${ai && ai.summary ? `<div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${ai.summary} (${ai.mode})</div>` : ""}
+                 <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+                   <span style="font-size:10.5px; font-weight:700; color:var(--text-muted);">Ajust fi:</span>
+                   <input type="range" class="meal-ai-slider" data-meal="${meal.key}" min="0" max="100" step="5" value="${Math.round(curPct * 100)}" style="flex:1;">
+                   <span style="font-size:11px; font-weight:800; min-width:34px; text-align:right;">${Math.round(curPct * 100)}%</span>
+                 </div>
+               </div>`
+            : meal.photoBefore || meal.photoAfter
+            ? `<div class="meal-ai-result-box pending">
+                 <span>📷 Falta pujar la <strong>${meal.photoBefore ? "Foto Després" : "Foto Abans"}</strong> perquè l'Agent IA calculi Kcal, Proteïnes i Lípids.</span>
+               </div>`
+            : "";
+
           return `
             <div class="meal-card">
-              <div style="display:flex; justify-content:space-between; font-size:12.5px; font-weight:700;">
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:700; gap:4px; flex-wrap:wrap;">
                 <span>🍽️ ${meal.label}</span>
-                <span style="color:var(--primary-dark);">${fmt(meal.kcal, 0)} kcal · ${fmt(meal.proteinG, 1)}g Prot</span>
+                <span style="color:var(--primary-dark); font-size:11.5px;">
+                  🔥 ${fmt(meal.kcal, 0)} kcal · 🥩 ${fmt(meal.proteinG, 1)}g P · 💧 ${fmt(meal.lipidsG, 1)}g L
+                </span>
               </div>
               <div class="comstock-options">
                 ${levels
                   .map((lvl) => {
-                    const isSel = Math.abs(curPct - lvl.val) < 0.01;
+                    const isSel = Math.abs(closestLvl - lvl.val) < 0.01;
                     const deg = lvl.val * 360;
                     return `
                       <button type="button" class="comstock-btn ${isSel ? "selected" : ""}" data-meal="${meal.key}" data-val="${lvl.val}">
@@ -1683,15 +2086,16 @@
                   .join("")}
               </div>
               <div class="photo-upload-row">
-                <label class="photo-slot">
-                  <input type="file" accept="image/*" capture="environment" style="display:none;" class="meal-photo-input" data-meal="${meal.key}" data-side="photoBefore">
-                  ${meal.photoBefore ? `<img src="${meal.photoBefore}"><span>📷 Foto Abans</span>` : `<span>📷 + Foto Abans</span>`}
+                <label class="photo-slot ${meal.photoBefore ? "has-photo" : ""}">
+                  <input type="file" accept="image/*" style="display:none;" class="meal-photo-input" data-meal="${meal.key}" data-side="photoBefore">
+                  ${meal.photoBefore ? `<img src="${meal.photoBefore}"><span>📷 Abans ✓</span>` : `<span>📷 + Foto Abans</span>`}
                 </label>
-                <label class="photo-slot">
-                  <input type="file" accept="image/*" capture="environment" style="display:none;" class="meal-photo-input" data-meal="${meal.key}" data-side="photoAfter">
-                  ${meal.photoAfter ? `<img src="${meal.photoAfter}"><span>📷 Foto Després</span>` : `<span>📷 + Foto Després</span>`}
+                <label class="photo-slot ${meal.photoAfter ? "has-photo" : ""}">
+                  <input type="file" accept="image/*" style="display:none;" class="meal-photo-input" data-meal="${meal.key}" data-side="photoAfter">
+                  ${meal.photoAfter ? `<img src="${meal.photoAfter}"><span>📷 Després ✓</span>` : `<span>📷 + Foto Després</span>`}
                 </label>
               </div>
+              ${aiCardHtml}
             </div>
           `;
         })
@@ -1701,6 +2105,44 @@
         btn.addEventListener("click", () => {
           const k = btn.getAttribute("data-meal");
           day.meals[k].eatenPct = Number(btn.getAttribute("data-val"));
+          if (day.meals[k].aiAnalysis) {
+            day.meals[k].aiAnalysis.eatenPct = day.meals[k].eatenPct;
+            day.meals[k].aiAnalysis.proteinFactor = 1;
+            day.meals[k].aiAnalysis.lipidFactor = 1;
+            day.meals[k].aiAnalysis.carbFactor = 1;
+            day.meals[k].aiAnalysis.summary = "Ajustat manualment per escala Comstock";
+          }
+          saveState();
+          renderAll();
+        });
+      });
+
+      mealsContainer.querySelectorAll(".meal-ai-slider").forEach((slider) => {
+        slider.addEventListener("change", (ev) => {
+          const k = slider.getAttribute("data-meal");
+          const newPct = Number(ev.target.value) / 100;
+          day.meals[k].eatenPct = newPct;
+          if (day.meals[k].aiAnalysis) {
+            day.meals[k].aiAnalysis.eatenPct = newPct;
+          }
+          saveState();
+          renderAll();
+        });
+      });
+
+      mealsContainer.querySelectorAll(".btn-reanalyze-meal").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const k = btn.getAttribute("data-meal");
+          analyzeMealPhotosAgent(day, k);
+        });
+      });
+
+      mealsContainer.querySelectorAll(".btn-clear-meal-photos").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const k = btn.getAttribute("data-meal");
+          day.meals[k].photoBefore = null;
+          day.meals[k].photoAfter = null;
+          day.meals[k].aiAnalysis = null;
           saveState();
           renderAll();
         });
@@ -1717,7 +2159,11 @@
             resizeImageDataUrl(le.target.result, 420, (url) => {
               day.meals[k][side] = url;
               saveState();
-              renderAll();
+              if (day.meals[k].photoBefore && day.meals[k].photoAfter) {
+                analyzeMealPhotosAgent(day, k);
+              } else {
+                renderAll();
+              }
             });
           };
           reader.readAsDataURL(file);
@@ -3262,10 +3708,25 @@
       const d = getActiveDay(p);
       d.oralActive = true;
       d.oralEvaluated = true;
+      d.comstockExpanded = true;
       if (p.dysphagia && d.oralDietName === "SEMILIQUIDA") d.oralDietName = "BASAL PASTOSA";
       else if (p.diabetes && d.oralDietName === "SEMILIQUIDA") d.oralDietName = "DIABÈTICA 1500";
       saveState();
       renderAll();
+    });
+
+    document.getElementById("btn-config-gemini-key")?.addEventListener("click", () => {
+      const current = getGeminiApiKey();
+      const input = prompt(
+        "🤖 Agent IA de Visió Nutricional:\n\n" +
+          "• Per defecte l'App utilitza el Motor de Visió per Computador Local (100% gratuït i sense connexió a internet).\n" +
+          "• Si vols activar també l'Agent Gemini 2.5 Flash Vision al núvol, enganxa aquí la teva clau API de Google AI Studio (o deixa-ho buit per usar només el motor local):",
+        current
+      );
+      if (input !== null) {
+        setGeminiApiKey(input);
+        renderAll();
+      }
     });
 
     // Si marca NO a Via Oral -> Tanca Via Oral i obre directament la Pantalla 7 (Nutrició Enteral)!
