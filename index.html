@@ -941,11 +941,20 @@
 
             <div id="oral-diet-detail-banner" style="margin-top:10px; padding:10px; background:var(--primary-soft); border:1px solid #99f6e4; border-radius:8px; font-size:12.5px;"></div>
 
-            <div style="margin-top:10px;">
-              <button type="button" class="btn btn-sm btn-outline" id="btn-toggle-comstock-meals">
-                📷 Detallar per Àpats / Fotos ▾
-              </button>
-              <div id="comstock-meals-wrapper" style="display:none; margin-top:10px;">
+            <div style="margin-top:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                <button type="button" class="btn btn-sm btn-outline" id="btn-toggle-comstock-meals">
+                  📷 Àpats i Agent IA per Fotos (Abans / Després) ▾
+                </button>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span class="badge badge-info" id="badge-photo-agent-mode">🤖 Agent Visual Actiu</span>
+                  <button type="button" class="btn btn-sm btn-outline" id="btn-config-gemini-key" title="Configurar Clau API Gemini opcional per visió IA al núvol">
+                    ⚙️ IA Cloud
+                  </button>
+                </div>
+              </div>
+              <div id="comstock-meals-wrapper" style="display:block; margin-top:8px;">
+                <div id="photo-agent-global-summary" style="margin-bottom:10px;"></div>
                 <div class="comstock-grid-2" id="comstock-meals-container"></div>
               </div>
             </div>
