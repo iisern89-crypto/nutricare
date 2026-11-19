@@ -1845,33 +1845,44 @@ Respon ÚNICAMENT amb un objecte JSON vàlid amb aquest format exacte:
       }
     }
 
-    // 2. Motor de Visió per Computador Local (100% Offline, instantani i sempre disponible)
+    // 2. Motor de Visió per Computador Local (100% Offline, sincronitzat amb l'Entrenador NutriVision)
     if (!result) {
+      let cal = { scaleFactor: 1.0, offsetBias: 0.0, emptyPlateFloorRatio: 0.18, proteinBias: 1.0, lipidBias: 1.0 };
+      try {
+        const rawCal = localStorage.getItem("nutrihumt_vision_calibration_v1");
+        if (rawCal) {
+          const parsedCal = JSON.parse(rawCal);
+          cal.scaleFactor = Number(parsedCal.scaleFactor) || 1.0;
+          cal.offsetBias = Number(parsedCal.offsetBias) || 0.0;
+          cal.emptyPlateFloorRatio = Number(parsedCal.emptyPlateFloorRatio) || 0.18;
+          cal.proteinBias = Number(parsedCal.proteinBias) || 1.0;
+          cal.lipidBias = Number(parsedCal.lipidBias) || 1.0;
+        }
+      } catch (e) {}
+
       const beforeM = await extractDishMetricsFromDataUrl(mData.photoBefore);
       const afterM = await extractDishMetricsFromDataUrl(mData.photoAfter);
 
       const baseD = Math.max(0.06, beforeM.foodDensity);
-      // Descompte del soroll residual de la vaixella buida (~18% de la densitat base)
-      const emptyFloor = Math.min(0.08, baseD * 0.18);
+      const emptyFloor = Math.min(0.1, baseD * cal.emptyPlateFloorRatio);
       const netBefore = Math.max(0.04, beforeM.foodDensity - emptyFloor);
       const netAfter = Math.max(0, afterM.foodDensity - emptyFloor);
 
-      let rawEaten = 1 - netAfter / netBefore;
-      // Si les dues imatges són idèntiques, rawEaten = 0; si després està gairebé net, rawEaten -> 1
-      rawEaten = Math.max(0, Math.min(1, rawEaten));
-      const eatenPct = Math.round(rawEaten * 100) / 100;
+      let rawEaten = Math.max(0, Math.min(1, 1 - netAfter / netBefore));
+      const calibratedEaten = Math.max(0, Math.min(1, rawEaten * cal.scaleFactor + cal.offsetBias));
+      const eatenPct = Math.round(calibratedEaten * 100) / 100;
 
-      // Factors diferencials de proteïna, lípids i HC segons la reducció de cada senyal cromàtica/textural
-      const calcSpecFactor = (bVal, aVal) => {
+      // Factors diferencials de proteïna, lípids i HC segons la reducció de cada senyal cromàtica/textural + calibratge entrenat
+      const calcSpecFactor = (bVal, aVal, bias = 1.0) => {
         if (eatenPct <= 0.05 || eatenPct >= 0.95 || bVal <= 0.02) return 1.0;
         const specEaten = Math.max(0, Math.min(1, 1 - Math.max(0, aVal - emptyFloor * 0.7) / Math.max(0.02, bVal - emptyFloor * 0.7)));
-        const ratio = specEaten / Math.max(0.1, eatenPct);
-        return Math.round(Math.max(0.8, Math.min(1.2, ratio)) * 100) / 100;
+        const ratio = (specEaten / Math.max(0.1, rawEaten)) * bias;
+        return Math.round(Math.max(0.75, Math.min(1.25, ratio)) * 100) / 100;
       };
 
-      const proteinFactor = calcSpecFactor(beforeM.proteinDensity, afterM.proteinDensity);
-      const lipidFactor = calcSpecFactor(beforeM.lipidDensity, afterM.lipidDensity);
-      const carbFactor = calcSpecFactor(beforeM.carbDensity, afterM.carbDensity);
+      const proteinFactor = calcSpecFactor(beforeM.proteinDensity, afterM.proteinDensity, cal.proteinBias);
+      const lipidFactor = calcSpecFactor(beforeM.lipidDensity, afterM.lipidDensity, cal.lipidBias);
+      const carbFactor = calcSpecFactor(beforeM.carbDensity, afterM.carbDensity, 1.0);
 
       let desc = "Safata gairebé íntegra (baixa ingesta)";
       if (eatenPct >= 0.85) desc = "Plat gairebé buit · Ingesta completa";
