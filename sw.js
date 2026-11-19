@@ -1,11 +1,13 @@
-const CACHE_NAME = "nutricare-offline-v3";
+const CACHE_NAME = "nutricare-offline-v4";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
+  "./foto-agent.html",
   "./css/styles.css",
   "./js/data.js",
   "./js/app.js",
   "./manifest.json",
+  "./manifest-agent.json",
   "./favicon.svg",
   "./favicon.png",
   "./apple-touch-icon.png",
